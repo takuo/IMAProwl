@@ -1,0 +1,14 @@
+LogDir: logs/
+Debug: false
+
+Prowl:
+ APIKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+Accounts:
+ -
+  Application: GMail
+  User: yourname
+  Pass: password
+  Host: imap.gmail.com
+  BodyLength: 256
+  Interval: 8  

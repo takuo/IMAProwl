@@ -1,0 +1,39 @@
+IMAProwl Version 0.5 pre
+
+ * Requirements
+  - Ruby 1.9.0 or later with OpenSSL module.
+  - Prowl account. (get your account at http://prowl.weks.net/)
+  - Prowl iPhone application from AppStore.
+  - The IMAP server must be capable IDLE command.
+
+ * Instruction
+  - install rubygems
+  - gem install prowl
+  - edit config.yml
+  - execute ./imaprowl.rb
+
+ * Configuration file - config.yml
+
+  LogDir: <log directory, ex: "logs/">
+  Debug: <optional: enable debug output, default: false>
+
+  Prowl:
+   APIKey: <the prowl apikey of your account>
+
+  Accounts:
+  -
+    Appication: <application name for prowling> 
+    User: <username for IMAP server>
+    Pass: <password for IMAP server>
+    Host: <hostname of IMAP server, SSL support is required>
+    Port: <optional: TCP port number of IMAP server, default: 993>
+    MailBox: <optional: mailbox to check UNSEEN, default: INBOX>
+    BodyLength: <optional: body length for prowl notification, defaul:100, Max: 1000>
+    Interval: <optional: *alive* check interval for IDLE, default: no check, minutes>
+  -
+    <you can define another account setting>
+
+
+-- 
+Takuo Kitame
+http://github.com/takuo/
