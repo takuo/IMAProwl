@@ -1,4 +1,4 @@
-IMAProwl Version 0.5 pre
+IMAProwl Version 0.6
 
  * Requirements
   - Ruby 1.9.0 or later with OpenSSL module.
@@ -14,11 +14,15 @@ IMAProwl Version 0.5 pre
 
  * Configuration file - config.yml
 
-  LogDir: <log directory, ex: "logs/">
+  LogDir: <log directory, ex: "logs/", don't logging if it's not defined>
   Debug: <optional: enable debug output, default: false>
 
   Prowl:
    APIKey: <the prowl apikey of your account>
+   ProxyHost: <http proxy host address if it's available>
+   ProxyPort: <http proxy port number>
+   ProxyUser: <http proxy auth username if it's required>
+   ProxyPass: <http proxy auth password if it's required>
 
   Accounts:
   -
@@ -27,11 +31,12 @@ IMAProwl Version 0.5 pre
     Pass: <password for IMAP server>
     Host: <hostname of IMAP server, SSL support is required>
     Port: <optional: TCP port number of IMAP server, default: 993>
+    Priority: <optional: Notification Priority(int): -2(low) to 2(high), default: 0>
     MailBox: <optional: mailbox to check UNSEEN, default: INBOX>
     BodyLength: <optional: body length for prowl notification, defaul:100, Max: 1000>
     Interval: <optional: *alive* check interval for IDLE, default: no check, minutes>
   -
-    <you can define another account setting>
+    <you can define another and more accounts>
 
 
 -- 
