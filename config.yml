@@ -11,4 +11,5 @@ Accounts:
   Pass: password
   Host: imap.gmail.com
   BodyLength: 256
+  Priority: 0
   Interval: 8  
