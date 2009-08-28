@@ -7,8 +7,6 @@ IMAProwl Version 0.6
   - The IMAP server must be capable IDLE command.
 
  * Instruction
-  - install rubygems
-  - gem install prowl
   - edit config.yml
   - execute ./imaprowl.rb
 
