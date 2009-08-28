@@ -32,7 +32,7 @@ IMAProwl Version 0.6
     Priority: <optional: Notification Priority(int): -2(low) to 2(high), default: 0>
     MailBox: <optional: mailbox to check UNSEEN, default: INBOX>
     BodyLength: <optional: body length for prowl notification, defaul:100, Max: 1000>
-    Interval: <optional: *alive* check interval for IDLE, default: no check, minutes>
+    Interval: <optional: *alive* check interval for IDLE, default: 20 minutes>
   -
     <you can define another and more accounts>
 
