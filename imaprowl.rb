@@ -1,24 +1,23 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl Client for IMAP/IDLE
-# Version: 0.5
+# Version: 0.6
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
 # You can redistribute it and/or modify it under the same term as Ruby.
 #
 $:.insert(0, File.dirname(__FILE__))
-IMAPROWL_VERSION = "0.5"
+IMAPROWL_VERSION = "0.6"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
 end
 
-require 'rubygems'
-require 'thread'
+require 'uri'
+require 'net/https'
 require 'net/imap'
 require 'yaml'
-require 'prowl'
 require 'nkf'
 require 'logger'
 
@@ -27,6 +26,8 @@ unless Net::IMAP.respond_to?("idle")
 end
 
 class IMAProwl
+
+  PROWL_API_ADD = "https://prowl.weks.net/publicapi/add"
 
   attr_reader :thread
   attr_reader :logged_in
@@ -45,8 +46,8 @@ class IMAProwl
     @logger.add(Logger::INFO, str, @application) if @logger
   end
 
-  def initialize(api_key, conf)
-    @api_key = api_key
+  def initialize(prowl_conf, conf)
+    @prowl_conf = prowl_conf
     @application = conf['Application'] ? conf['Application'] : "IMAProwl"
     @user = conf['User']
     @pass = conf['Pass']
@@ -55,6 +56,7 @@ class IMAProwl
     @mailbox = conf['MailBox'] ? conf['MailBox'] : "INBOX"
     @interval = conf['Interval'] ? conf['Interval'] : 20
     @length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
+    @priority = conf['Priority'] ? conf['Priority'] : 0
     @notified = []
     connect()
     unless @imap.capability.include?('IDLE')
@@ -109,6 +111,23 @@ class IMAProwl
     @logged_in = false
   end
 
+  def prowl(params={})
+    u = URI::parse(PROWL_API_ADD)
+    if @prowl_conf['ProxyHost']
+      http = Net::HTTP::Proxy(@prowl_conf['ProxyHost'],
+                              @prowl_conf['ProxyPort'],
+                              @prowl_conf['ProxyUser'],
+                              @prowl_conf['ProxyPass']).new(u.host, u.port)
+    else
+      http = Net::HTTP.new(u.host, u.port)
+    end
+    http.use_ssl = true
+    http.verify_mode = OpenSSL::SSL::VERIFY_NONE
+    request = Net::HTTP::Post.new(u.request_uri)
+    query = params.map do |key, val| "#{key}=#{URI::encode(val)}" end
+    return http.request(request, query.join('&'))
+  end
+
   def check_unseen(prowl = false)
     debug "Checking UNSEEN mail."
     unseen = @imap.search(['UNSEEN'])
@@ -149,11 +168,11 @@ class IMAProwl
       if prowl
         info "Prowling..."
         debug "Prowling: " + string + " " + body
-        presp = Prowl.send( @api_key,
-                            :application => @application,
-                            :event => string,
-                            :description => body )
-        debug "Response: #{presp}"
+        presp = prowl( :apikey=> @prowl_conf['APIKey'],
+                       :application => @application,
+                       :event => string,
+                       :description => body )
+        debug "Response: #{presp.code}"
       else
         # debug "Not Prowled: " + string + " " + body
       end
@@ -208,19 +227,21 @@ Dir.chdir(File.dirname(__FILE__))
 config = YAML.load_file('config.yml')
 
 # Logger
-logdir = config['LogDir'] ? config['LogDir'] : "."
-Dir.mkdir(logdir) unless Dir.exist?(logdir)
-STDOUT.puts "All logs will be written into #{File.join(logdir, "imaprowl.log")}."
-STDOUT.flush
-logger = Logger.new(File.join(logdir, "imaprowl.log"), 'daily')
-logger.level = config['Debug'] ? Logger::DEBUG : Logger::INFO
-logger.datetime_format = "%Y-%m-%d %H:%M:%S"
+logdir = config['LogDir'] ? config['LogDir'] : nil
+if logdir
+  Dir.mkdir(logdir) unless Dir.exist?(logdir)
+  STDOUT.puts "All logs will be written into #{File.join(logdir, "imaprowl.log")}."
+  STDOUT.flush
+  logger = Logger.new(File.join(logdir, "imaprowl.log"), 'daily')
+  logger.level = config['Debug'] ? Logger::DEBUG : Logger::INFO
+  logger.datetime_format = "%Y-%m-%d %H:%M:%S"
+end
 
 # Create Account Thread
 application = Array.new
 config['Accounts'].each do |account|
-  ip = IMAProwl.new(config['Prowl']['APIKey'], account)
-  ip.logger = logger
+  ip = IMAProwl.new(config['Prowl'], account)
+  ip.logger = logger unless logger.nil?
   ip.run
   application.push(ip)
 end
@@ -246,4 +267,3 @@ loop do
     end
   end
 end
-
