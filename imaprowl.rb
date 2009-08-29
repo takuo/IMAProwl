@@ -124,7 +124,7 @@ class IMAProwl
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     request = Net::HTTP::Post.new(u.request_uri)
-    query = params.map do |key, val| "#{key}=#{URI::encode(val)}" end
+    query = params.map do |key, val| "#{key}=#{URI::encode(val.to_s)}" end
     return http.request(request, query.join('&'))
   end
 
@@ -171,7 +171,9 @@ class IMAProwl
         presp = prowl( :apikey=> @prowl_conf['APIKey'],
                        :application => @application,
                        :event => string,
-                       :description => body )
+                       :description => body,
+                       :priority => @priority
+                      )
         debug "Response: #{presp.code}"
       else
         # debug "Not Prowled: " + string + " " + body
