@@ -1,3 +1,10 @@
+2009-08-31  takuo  <kitame at gmail.com>
+
+  * imaprowl.rb (class): prowl_conf and logger are now class variable.
+    (debug),(error),(info): Print all log into STDOUT/STDERR if LogDir is undefined.
+    (idler): Fix issue that IMAProwl won't reconnect when error occurred at check_unseen().
+    Some clean-ups.
+
 2009-08-29  takuo  <kitame at gmail.com>
 
   * imaprowl.rb: fix does not send priority parameter.
