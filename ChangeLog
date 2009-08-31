@@ -1,0 +1,21 @@
+2009-08-29  takuo  <kitame at gmail.com>
+
+  * imaprowl.rb: fix does not send priority parameter.
+
+2009-08-28  takuo  <kitame at gmail.com> 
+
+  * README: default interval is 20.
+  update, rubygems is no longer required.
+  up-to-date 0.6.
+
+  * config.yml: added Priority item in Account
+
+  * imaprowl.rb: no longer use rubygems.
+  support HTTP Proxy for prowling.
+  configurable Prowl Priority by Account.
+  don't output any log when LogDir is undefined.
+
+2009-08-25  takuo  <kitame at gmail.com>
+
+  * .gitignore, README, config.yml, imapidle.rb, imaprowl.rb: 
+  0.5 with cleanup Repo
