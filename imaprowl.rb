@@ -1,14 +1,14 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl Client for IMAP/IDLE
-# Version: 0.6
+# Version: 0.7
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
 # You can redistribute it and/or modify it under the same term as Ruby.
 #
 $:.insert(0, File.dirname(__FILE__))
-IMAPROWL_VERSION = "0.6"
+IMAPROWL_VERSION = "0.7"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -34,20 +34,49 @@ class IMAProwl
   attr_reader :idle_time
   attr_reader :interval
 
+  @@logger = nil
+
+  def self.logger=val
+    @@logger = val
+  end
+
+  def self.prowl_conf=val
+    @@prowl_conf = val
+    unless @@prowl_conf.kind_of?(Hash)
+      STDERR.printf "Configuration Error: Prowl section must be Hash.\n"
+      exit 1
+    end
+    unless @@prowl_conf.has_key?('APIKey')
+      STDERR.printf "Configuration Error: APIKey must be given.\n"
+      exit 1
+    end
+  end
+
+  def log(severity, str)
+    if @@logger
+      @@logger.add(severity, str, @application)
+    else
+      if severity == Logger::ERROR
+        STDERR.print Time.now.strftime("[%Y.%m.%d %H:%M:%S] #{@application} - "), str, "\n"
+      else
+        print Time.now.strftime("[%Y.%m.%d %H:%M:%S] #{@application} - "), str, "\n"
+      end
+    end
+  end
+
   def debug(str)
-    @logger.add(Logger::DEBUG, str, @application) if @logger
+    log(Logger::DEBUG, str)
   end
 
   def error(str)
-    @logger.add(Logger::ERROR, str, @application) if @logger
+    log(Logger::ERROR, str)
   end
 
   def info(str)
-    @logger.add(Logger::INFO, str, @application) if @logger
+    log(Logger::INFO, str)
   end
 
-  def initialize(prowl_conf, conf)
-    @prowl_conf = prowl_conf
+  def initialize(conf)
     @application = conf['Application'] ? conf['Application'] : "IMAProwl"
     @user = conf['User']
     @pass = conf['Pass']
@@ -63,17 +92,6 @@ class IMAProwl
       error "Error: #{@host} does not support IDLE."
       return nil
     end
-  end
-
-  def set_logger(logger)
-    @logger = logger
-  end
-  def logger=val
-    @logger=val
-  end
-
-  def name
-    @application
   end
 
   def login
@@ -113,17 +131,18 @@ class IMAProwl
 
   def prowl(params={})
     u = URI::parse(PROWL_API_ADD)
-    if @prowl_conf['ProxyHost']
-      http = Net::HTTP::Proxy(@prowl_conf['ProxyHost'],
-                              @prowl_conf['ProxyPort'],
-                              @prowl_conf['ProxyUser'],
-                              @prowl_conf['ProxyPass']).new(u.host, u.port)
+    if @@prowl_conf['ProxyHost']
+      http = Net::HTTP::Proxy(@@prowl_conf['ProxyHost'],
+                              @@prowl_conf['ProxyPort'],
+                              @@prowl_conf['ProxyUser'],
+                              @@prowl_conf['ProxyPass']).new(u.host, u.port)
     else
       http = Net::HTTP.new(u.host, u.port)
     end
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
     request = Net::HTTP::Post.new(u.request_uri)
+    request.content_type = "application/x-www-form-urlencoded"
     query = params.map do |key, val| "#{key}=#{URI::encode(val.to_s)}" end
     return http.request(request, query.join('&'))
   end
@@ -168,7 +187,7 @@ class IMAProwl
       if prowl
         info "Prowling..."
         debug "Prowling: " + string + " " + body
-        presp = prowl( :apikey=> @prowl_conf['APIKey'],
+        presp = prowl( :apikey=> @@prowl_conf['APIKey'],
                        :application => @application,
                        :event => string,
                        :description => body,
@@ -198,13 +217,7 @@ class IMAProwl
               @imap.idle_done
             end
           end
-          begin
-            check_unseen(true) if event
-          rescue
-            error "Error while checking UNSEEN mail."
-            error $!.to_s
-            error $!.backtrace
-          end
+          check_unseen(true) if event
         rescue
           error "Error! #{$!}"
           connect
@@ -227,6 +240,7 @@ end
 
 Dir.chdir(File.dirname(__FILE__))
 config = YAML.load_file('config.yml')
+IMAProwl.prowl_conf = config['Prowl']
 
 # Logger
 logdir = config['LogDir'] ? config['LogDir'] : nil
@@ -234,25 +248,24 @@ if logdir
   Dir.mkdir(logdir) unless Dir.exist?(logdir)
   STDOUT.puts "All logs will be written into #{File.join(logdir, "imaprowl.log")}."
   STDOUT.flush
-  logger = Logger.new(File.join(logdir, "imaprowl.log"), 'daily')
+  IMAProwl.logger = logger = Logger.new(File.join(logdir, "imaprowl.log"), 'daily')
   logger.level = config['Debug'] ? Logger::DEBUG : Logger::INFO
   logger.datetime_format = "%Y-%m-%d %H:%M:%S"
+else
+  STDOUT.sync = true
 end
 
 # Create Account Thread
 application = Array.new
 config['Accounts'].each do |account|
-  ip = IMAProwl.new(config['Prowl'], account)
-  ip.logger = logger unless logger.nil?
-  ip.run
-  application.push(ip)
+  a = IMAProwl.new(account)
+  a.run
+  application.push(a)
 end
 
 Signal.trap("INT") {
-  application.each do |ip|
-    ip.thread.exit
-  end
-  exit
+  application.each { |t| Thread.kill( t.thread ) }
+  Thread.main.exit
 }
 
 loop do
