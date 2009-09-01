@@ -20,10 +20,7 @@ require 'net/imap'
 require 'yaml'
 require 'nkf'
 require 'logger'
-
-unless Net::IMAP.respond_to?("idle")
-  require 'imapidle'
-end
+require 'imapidle' unless Net::IMAP.respond_to?("idle")
 
 class IMAProwl
 
@@ -34,13 +31,13 @@ class IMAProwl
   attr_reader :idle_time
   attr_reader :interval
 
+  @@conf = Hash.new
   @@logger = nil
+  @@prowl_conf = nil
 
-  def self.logger=val
-    @@logger = val
-  end
-
-  def self.prowl_conf=val
+  private
+  def _prowl_conf_validate(val)
+    return if @@prowl_conf
     @@prowl_conf = val
     unless @@prowl_conf.kind_of?(Hash)
       STDERR.printf "Configuration Error: Prowl section must be Hash.\n"
@@ -50,9 +47,25 @@ class IMAProwl
       STDERR.printf "Configuration Error: APIKey must be given.\n"
       exit 1
     end
+    _init_logger()
   end
 
-  def log(severity, str)
+  def _init_logger
+    if @@conf['LogDir']
+      logdir = @@conf['LogDir']
+      Dir.mkdir(logdir) unless Dir.exist?(logdir)
+      STDOUT.puts "All logs will be written into #{File.join(logdir, "imaprowl.log")}."
+      STDOUT.flush
+      @@logger = Logger.new(File.join(logdir, "imaprowl.log"), 'daily')
+      @@logger.level = @@conf['Debug'] ? Logger::DEBUG : Logger::INFO
+      @@logger.datetime_format = "%Y-%m-%d %H:%M:%S"
+    else
+      @@logger = nil
+      STDOUT.sync = true
+    end
+  end
+
+  def _log(severity, str)
     if @@logger
       @@logger.add(severity, str, @application)
     else
@@ -64,19 +77,22 @@ class IMAProwl
     end
   end
 
+  public
   def debug(str)
-    log(Logger::DEBUG, str)
+    _log(Logger::DEBUG, str)
   end
 
   def error(str)
-    log(Logger::ERROR, str)
+    _log(Logger::ERROR, str)
   end
 
   def info(str)
-    log(Logger::INFO, str)
+    _log(Logger::INFO, str)
   end
 
-  def initialize(conf)
+  def initialize(global, conf)
+    @@conf = global
+    _prowl_conf_validate(global['Prowl'])
     @application = conf['Application'] ? conf['Application'] : "IMAProwl"
     @user = conf['User']
     @pass = conf['Pass']
@@ -85,11 +101,16 @@ class IMAProwl
     @mailbox = conf['MailBox'] ? conf['MailBox'] : "INBOX"
     @interval = conf['Interval'] ? conf['Interval'] : 20
     @length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
+    @length = 1 if @length < 0
     @priority = conf['Priority'] ? conf['Priority'] : 0
     @notified = []
     connect()
     unless @imap.capability.include?('IDLE')
       error "Error: #{@host} does not support IDLE."
+      begin
+        @imap.disconnect
+      rescue
+      end
       return nil
     end
   end
@@ -107,72 +128,88 @@ class IMAProwl
     return true
   end
 
-  def close
-    @imap.logout
-    @imap.close
-    @logged_in = false 
-  end 
-
   def connect
-    @imap = Net::IMAP.new( @host, @port, true, nil, false ) # don't verify cert
     @logged_in = false
+    begin
+      @imap = Net::IMAP.new( @host, @port, true, nil, false ) # don't verify cert
+    rescue
+      error "Error on connect()"
+    end
   end
 
   def disconnected?
     return @imap.disconnected?
   end
 
-  def logout
-    @imap.logout
-    @imap.close
-    @imap = nil
-    @logged_in = false
+  def run
+    info "Start."
+    idler()
   end
 
-  def prowl(params={})
-    u = URI::parse(PROWL_API_ADD)
+  def stop
+    @imap.idle_done
+    debug "Stop IDLE."
+  end
+
+  private
+  def prowl( params = {} )
+    uri = URI::parse( PROWL_API_ADD )
     if @@prowl_conf['ProxyHost']
-      http = Net::HTTP::Proxy(@@prowl_conf['ProxyHost'],
-                              @@prowl_conf['ProxyPort'],
-                              @@prowl_conf['ProxyUser'],
-                              @@prowl_conf['ProxyPass']).new(u.host, u.port)
+      http = Net::HTTP::Proxy( @@prowl_conf['ProxyHost'],
+                               @@prowl_conf['ProxyPort'],
+                               @@prowl_conf['ProxyUser'],
+                               @@prowl_conf['ProxyPass']).new( uri.host,
+                                                               uri.port )
     else
-      http = Net::HTTP.new(u.host, u.port)
+      http = Net::HTTP.new( uri.host, uri.port )
     end
+
     http.use_ssl = true
     http.verify_mode = OpenSSL::SSL::VERIFY_NONE
-    request = Net::HTTP::Post.new(u.request_uri)
+
+    request = Net::HTTP::Post.new( uri.request_uri )
     request.content_type = "application/x-www-form-urlencoded"
+
     query = params.map do |key, val| "#{key}=#{URI::encode(val.to_s)}" end
+
     return http.request(request, query.join('&'))
   end
 
-  def check_unseen(prowl = false)
+  def check_unseen( prowl = false )
     debug "Checking UNSEEN mail."
+
     unseen = @imap.search(['UNSEEN'])
+    return unless unseen.size > 0
+
     unseen_set = Array.new
-    unseen.each do |id|
-      data = @imap.fetch(id, "(ENVELOPE BODYSTRUCTURE BODY[1] UID)").first
+
+    data_set = @imap.fetch( unseen, "(ENVELOPE BODYSTRUCTURE BODY[1] UID)" )
+    data_set.each do |data|
       attr = data.attr
       unseen_set.push attr["UID"]
-      if @notified.include?(attr["UID"])
-        debug "SKIP Already notified: UID=%s" % [attr["UID"]]
+
+      if @notified.include?( attr["UID"] )
+        debug "SKIP Already notified: UID=#{attr["UID"]}"
         next
       end
 
-      header = { :subject => 'no title', :from => 'unknown' }
-      from_name = attr["ENVELOPE"].from.first.name
-      from_addr = "<%s@%s>" % [ attr["ENVELOPE"].from.first.mailbox,
-                              attr["ENVELOPE"].from.first.host ]
-      header[:from] = from_name ? from_name : from_addr
-      header[:subject] = attr["ENVELOPE"].subject ? attr["ENVELOPE"].subject : "Untitled"
-      part = nil
-      body = ""
-      if attr['BODYSTRUCTURE'].kind_of?(Net::IMAP::BodyTypeMultipart)
+      # header process
+      envelope = attr["ENVELOPE"]
+
+      from_name = envelope.from.first.name
+      from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
+
+      from = from_name ? NKF.nkf( '-mw', from_name ) : from_addr
+      subject = envelope.subject ?  NKF.nkf( '-mw', envelope.subject ): "Untitled"
+      event = "#{subject} from: #{from}"
+
+      # body process
+      if attr['BODYSTRUCTURE'].kind_of?( Net::IMAP::BodyTypeMultipart )
         part = attr['BODYSTRUCTURE'].parts[0]
       else
         part = attr['BODYSTRUCTURE']
       end
+
       if part.encoding && part.encoding.upcase == "QUOTED-PRINTABLE"
         body = attr["BODY[1]"].unpack("M*").first
       elsif part.encoding && part.encoding.upcase == "BASE64"
@@ -180,24 +217,28 @@ class IMAProwl
       else
         body = attr['BODY[1]']
       end
-      string = NKF.nkf('-mw', header[:subject]) + " from: " +
-               NKF.nkf('-mw', header[:from])
+
       body = NKF.nkf('-w', body)
       body = body.split(//u)[0..@length].join
+
+      # prowling
       if prowl
         info "Prowling..."
-        debug "Prowling: " + string + " " + body
+        debug "Prowling: " + event + " " + body
         presp = prowl( :apikey=> @@prowl_conf['APIKey'],
                        :application => @application,
-                       :event => string,
+                       :event => event,
                        :description => body,
                        :priority => @priority
                       )
         debug "Response: #{presp.code}"
       else
-        # debug "Not Prowled: " + string + " " + body
+        debug "Not Prowled: UID=#{attr["UID"]}"
       end
+
     end
+
+    # caching
     @notified = unseen_set
   end
  
@@ -219,66 +260,61 @@ class IMAProwl
           end
           check_unseen(true) if event
         rescue
-          error "Error! #{$!}"
-          connect
-          login
+          error "Error in idler(): #{$!}"
+          begin
+            ## unlock IDLE if it still exists.
+            @imap.idle_done 
+          rescue
+          end
+          Thread.current.exit
         end
+        debug "idler(): Still in loop"
       end # loop
     end
   end
   
-  def run
-    info "Start."
-    idler()
-  end
-
-  def stop
-    @imap.idle_done
-    debug "Stop IDLE."
-  end
 end
 
 Dir.chdir(File.dirname(__FILE__))
 config = YAML.load_file('config.yml')
-IMAProwl.prowl_conf = config['Prowl']
-
-# Logger
-logdir = config['LogDir'] ? config['LogDir'] : nil
-if logdir
-  Dir.mkdir(logdir) unless Dir.exist?(logdir)
-  STDOUT.puts "All logs will be written into #{File.join(logdir, "imaprowl.log")}."
-  STDOUT.flush
-  IMAProwl.logger = logger = Logger.new(File.join(logdir, "imaprowl.log"), 'daily')
-  logger.level = config['Debug'] ? Logger::DEBUG : Logger::INFO
-  logger.datetime_format = "%Y-%m-%d %H:%M:%S"
-else
-  STDOUT.sync = true
-end
 
 # Create Account Thread
 application = Array.new
 config['Accounts'].each do |account|
-  a = IMAProwl.new(account)
+  a = IMAProwl.new(config, account)
+  next if a.nil?
   a.run
   application.push(a)
 end
 
 Signal.trap("INT") {
-  application.each { |t| Thread.kill( t.thread ) }
-  Thread.main.exit
+  application.each { |a|
+    begin
+      a.stop;
+    ensure
+      Thread.kill( a.thread ) if a.thread.alive?
+    end
+  }
+  exit
 }
 
 loop do
   sleep 60
   application.each do |a|
-    if a.interval > 0 && Time.now - a.idle_time > 60 * a.interval
-      a.stop
-    end
-    unless a.thread.alive?
-      a.error "socket is disconnected. trying to reconnect..."
-      a.connect
-      a.run
-      a.debug "Restarted"
+    begin
+      if a.interval > 0 && Time.now - a.idle_time > 60 * a.interval
+        a.stop
+      end
+      unless a.thread.alive?
+        a.error "socket is disconnected. trying to reconnect..."
+        a.connect
+        a.run
+        a.debug "Restarted"
+      end
+    rescue
+      Thread.kill( a.thread ) if a.thread.alive?
+      a.error $!.to_s
+      a.debug $!.backtrace.to_s
     end
   end
 end
