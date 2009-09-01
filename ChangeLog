@@ -1,3 +1,13 @@
+2009-09-01  takuo  <kitame at gmail.com>
+
+  * imaprowl.rb (class): @@logger will be initialize in IMAProwl#new.
+  @@conf added to store the global configuration.
+  (prowl): refactoring.
+  (check_unseen): fetch should call only onece with message set array.
+  refactoring.
+  change some exception handling.
+  refactoring...
+
 2009-08-31  takuo  <kitame at gmail.com>
 
   * imaprowl.rb (class): prowl_conf and logger are now class variable.
