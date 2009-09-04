@@ -31,7 +31,7 @@ class IMAProwl
   @@prowl_conf = nil
 
   attr_reader :enable
-  attr_reader :idle_thread
+  attr_reader :loop_thread
 
   def initialize( global, conf )
     @@conf = global
@@ -48,6 +48,7 @@ class IMAProwl
     @priority = conf['Priority'] ? conf['Priority'] : 0
     @notified = []
     @enable = conf.has_key?('Enable') ? conf['Enable'] : true
+    @no_idle = conf.has_key?('NoIDLE') ? conf['NoIDLE'] : false
   end
 
   # start() should run only once
@@ -56,41 +57,48 @@ class IMAProwl
     connect()
     unless @imap.capability.include?( 'IDLE' )
       error "Error: #{@host} does not support IDLE."
-      begin
-        @imap.disconnect
-      ensure
-        @enable = false
-        return
-      end
+      error "Falling back to no IDLE support mode."
+      @no_idle = true
     end
     login()
     check_unseen( false )
-    idler()
+    if @no_idle
+      checker()
+    else
+      idler()
+    end
   end
 
   def restart
     info "Restarting..."
     connect()
     login()
-    check_unseen( true )
-    idler()
+    if @no_idle
+      checker()
+    else
+      check_unseen( true )
+      idler()
+    end
     debug "Restarted"
   end
 
   def stop
-    @imap.idle_done
-    debug "DONE IDLE."
+    unless @no_idle
+      @imap.idle_done
+      debug "DONE IDLE."
+    end
   end
 
   def status
+    return if @no_idle
     retried = false
     debug "Check process status..."
     begin
       if @imap.disconnected?
-        @idle_thread.exit if @idle_thread.alive?
+        @loop_thread.exit if @loop_thread.alive?
         error "socket is disconnected. trying to reconnect..."
         restart
-      elsif ! @idle_thread.alive?
+      elsif ! @loop_thread.alive?
         error "IDLE thread is dead."
         restart
       end
@@ -99,7 +107,7 @@ class IMAProwl
         stop
       end
     rescue
-      @idle_thread.exit if @idle_thread.alive?
+      @loop_thread.exit if @loop_thread.alive?
       error $!.to_s
       unless retried
         retried = true
@@ -280,8 +288,31 @@ class IMAProwl
     @notified = unseen_set
   end
 
+  def checker
+    debug "Won't use IDLE to check unseen mail."
+    @loop_thread = Thread.start do
+      loop do
+        begin
+          event = false
+          @imap.synchronize do
+            @imap.noop
+            event = true if @imap.responses["EXISTS"][-1]
+            @imap.responses.delete("EXISTS")
+          end
+          debug "Received EXISTS." if event
+          check_unseen( true ) if event
+          sleep( @interval * 60 )
+        rescue
+          error "Error in checker(): #{$!}"
+          debug "Exiting thread"
+          Thread.current.exit
+        end
+      end # loop
+    end # Thread
+  end
+
   def idler
-    @idle_thread = Thread.start do 
+    @loop_thread = Thread.start do
       loop do
         begin
           event = false
@@ -295,7 +326,7 @@ class IMAProwl
               @imap.idle_done
             end
           end
-          check_unseen(true) if event
+          check_unseen( true ) if event
         rescue
           error "Error in idler(): #{$!}"
           ##begin
@@ -311,7 +342,7 @@ class IMAProwl
       end # loop
     end # Thread
   end
-  
+
 end # class
 
 Dir.chdir(File.dirname(__FILE__))
@@ -331,10 +362,10 @@ Signal.trap("INT") {
       app.stop
     ensure
       sleep 1
-      app.idle_thread.exit if app.idle_thread.alive?
+      app.loop_thread.exit if app.loop_thread.alive?
     end
   }
-  print "DEBUG: Number of Threads: #{Thread.list.size}\n"  
+  print "DEBUG: Number of Threads: #{Thread.list.size}\n"
   exit
 }
 
