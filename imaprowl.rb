@@ -4,7 +4,7 @@
 # Version: 0.8
 #
 # Copyright (c) 2009 Takuo Kitame.
-5B#
+#
 # You can redistribute it and/or modify it under the same term as Ruby.
 #
 $:.insert(0, File.dirname(__FILE__))
