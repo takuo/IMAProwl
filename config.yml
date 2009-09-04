@@ -1,15 +1,32 @@
+##
+## example configuration (version >= 0.8)
+##
+## 
+## if undefine LogDir, Debug mode is forcefully enabled.
 LogDir: logs/
 Debug: false
 
+## API Key can be defined up to 5-keys with comma separated values.
 Prowl:
  APIKey: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+## IMAP Accounts.
 Accounts:
  -
   Application: GMail
   User: yourname
   Pass: password
   Host: imap.gmail.com
+  BodyLength: 100
+  Priority: 0
+  Interval: 7    # thread availability check interval, recommend you set 6-7 for GMail. (in minutes)
+ -
+  Application: SoftBank
+  User: yourname
+  Pass: password
+  Host: imap.softbank.jp
   BodyLength: 256
   Priority: 0
-  Interval: 8  
+  NOOPInterval: 20  # NOOP(check) interval with no-IDLE mode. (in seconds)
+  NoIDLE: true      # unnecessary, it should be auto-detected.
+  Enable: false     # diable this account
