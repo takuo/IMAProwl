@@ -1,10 +1,9 @@
-IMAProwl Version 0.7
+IMAProwl Version 0.8
 
  * Requirements
   - Ruby 1.9.0 or later with OpenSSL module.
   - Prowl account. (get your account at http://prowl.weks.net/)
   - Prowl iPhone application from AppStore.
-  - The IMAP server must be capable IDLE command.
 
  * Instruction
   - edit config.yml
@@ -12,7 +11,7 @@ IMAProwl Version 0.7
 
  * Configuration file - config.yml
 
-  LogDir: <log directory, ex: "logs/". Don't logging if it's not defined, output all logs into STDOUT/ERR and turn on debug mode.>
+  LogDir: <log directory, ex: "logs/". Don't logging if it's not defined, output all logs into STDOUT/ERR and turn on debug mode forcefully.>
   Debug: <optional: enable debug output, default: false>
 
   Prowl:
@@ -32,7 +31,10 @@ IMAProwl Version 0.7
     Priority: <optional: Notification Priority(int): -2(low) to 2(high), default: 0>
     MailBox: <optional: mailbox to check UNSEEN, default: INBOX>
     BodyLength: <optional: body length for prowl notification, defaul:100, Max: 1000>
-    Interval: <optional: *alive* check interval for IDLE, default: 20 minutes>
+    Interval: <optional: IDLE Thread alive check interval, default: 20 (minutes)>
+    NOOPInterval: <optional: NOOP interval for no-IDLE mode, it should be really short about 30 or so. default is 30 (seconds)>
+    NoIDLE: <optional: force no-IDLE mode, default: false>
+    Enable: <optional: false to disable this account, default: true>
   -
     <you can define another and more accounts>
 

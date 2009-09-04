@@ -1,5 +1,15 @@
 2009-09-04  takuo  <kitame at gmail.com>
 
+  * merge non-idle-support branch
+  * imaprowl.rb (checker): NOOP interval uses @noop value as seconds
+  disabling account if Enable == false	
+  * config.yml: update example.
+  * README: up-to-date
+
+  * IMAProwl 0.8 -- is now works with not IDLE capable IMAP server.
+
+2009-09-04  takuo  <kitame at gmail.com>
+
   * imaprowl.rb (@idle_thread): renamed to @loop_thread.
   (@no_idle): boolean flag for non-IDLE supported account.
   (checker): added. noop loop to check new unseen mail.
