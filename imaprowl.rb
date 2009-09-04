@@ -1,14 +1,14 @@
 #!/usr/bin/ruby
 #
-# IMAProwl - Prowl Client for IMAP/IDLE
-# Version: 0.7
+# IMAProwl - Prowl notification for IMAP new mail
+# Version: 0.8
 #
 # Copyright (c) 2009 Takuo Kitame.
-#
+5B#
 # You can redistribute it and/or modify it under the same term as Ruby.
 #
 $:.insert(0, File.dirname(__FILE__))
-IMAPROWL_VERSION = "0.7"
+IMAPROWL_VERSION = "0.8"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -43,6 +43,7 @@ class IMAProwl
     @port = conf['Port'] ? conf['Port'] : 993
     @mailbox = conf['MailBox'] ? conf['MailBox'] : "INBOX"
     @interval = conf['Interval'] ? conf['Interval'] : 20
+    @noop = conf['NOOPInterval'] ? conf['NOOPInterval'] : 30
     @length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
     @length = 1 if @length < 0
     @priority = conf['Priority'] ? conf['Priority'] : 0
@@ -301,7 +302,7 @@ class IMAProwl
           end
           debug "Received EXISTS." if event
           check_unseen( true ) if event
-          sleep( @interval * 60 )
+          sleep( @noop )
         rescue
           error "Error in checker(): #{$!}"
           debug "Exiting thread"
@@ -352,8 +353,9 @@ config = YAML.load_file('config.yml')
 application = Array.new
 config['Accounts'].each do |account|
   app = IMAProwl.new( config, account )
+  next unless app.enable
   app.start()
-  application.push( app ) if app.enable
+  application.push( app )
 end
 
 Signal.trap("INT") {
