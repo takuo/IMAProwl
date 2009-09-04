@@ -1,4 +1,4 @@
-IMAProwl Version 0.6
+IMAProwl Version 0.7
 
  * Requirements
   - Ruby 1.9.0 or later with OpenSSL module.
@@ -12,7 +12,7 @@ IMAProwl Version 0.6
 
  * Configuration file - config.yml
 
-  LogDir: <log directory, ex: "logs/", don't logging if it's not defined>
+  LogDir: <log directory, ex: "logs/". Don't logging if it's not defined, output all logs into STDOUT/ERR and turn on debug mode.>
   Debug: <optional: enable debug output, default: false>
 
   Prowl:

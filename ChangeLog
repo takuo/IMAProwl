@@ -1,3 +1,10 @@
+2009-09-04  takuo  <kitame at gmail.com>
+
+  * imaprowl.rb: Refectoring and Refactoring.
+  Hopefully fixed the blocking issue.
+  (status): added to check thread availability.
+  * up-to-date 0.7
+
 2009-09-01  takuo  <kitame at gmail.com>
 
   * imaprowl.rb (class): @@logger will be initialize in IMAProwl#new.
