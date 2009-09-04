@@ -26,73 +26,16 @@ class IMAProwl
 
   PROWL_API_ADD = "https://prowl.weks.net/publicapi/add"
 
-  attr_reader :thread
-  attr_reader :logged_in
-  attr_reader :idle_time
-  attr_reader :interval
-
   @@conf = Hash.new
   @@logger = nil
   @@prowl_conf = nil
 
-  private
-  def _prowl_conf_validate(val)
-    return if @@prowl_conf
-    @@prowl_conf = val
-    unless @@prowl_conf.kind_of?(Hash)
-      STDERR.printf "Configuration Error: Prowl section must be Hash.\n"
-      exit 1
-    end
-    unless @@prowl_conf.has_key?('APIKey')
-      STDERR.printf "Configuration Error: APIKey must be given.\n"
-      exit 1
-    end
-    _init_logger()
-  end
+  attr_reader :enable
+  attr_reader :idle_thread
 
-  def _init_logger
-    if @@conf['LogDir']
-      logdir = @@conf['LogDir']
-      Dir.mkdir(logdir) unless Dir.exist?(logdir)
-      STDOUT.puts "All logs will be written into #{File.join(logdir, "imaprowl.log")}."
-      STDOUT.flush
-      @@logger = Logger.new(File.join(logdir, "imaprowl.log"), 'daily')
-      @@logger.level = @@conf['Debug'] ? Logger::DEBUG : Logger::INFO
-      @@logger.datetime_format = "%Y-%m-%d %H:%M:%S"
-    else
-      @@logger = nil
-      STDOUT.sync = true
-    end
-  end
-
-  def _log(severity, str)
-    if @@logger
-      @@logger.add(severity, str, @application)
-    else
-      if severity == Logger::ERROR
-        STDERR.print Time.now.strftime("[%Y.%m.%d %H:%M:%S] #{@application} - "), str, "\n"
-      else
-        print Time.now.strftime("[%Y.%m.%d %H:%M:%S] #{@application} - "), str, "\n"
-      end
-    end
-  end
-
-  public
-  def debug(str)
-    _log(Logger::DEBUG, str)
-  end
-
-  def error(str)
-    _log(Logger::ERROR, str)
-  end
-
-  def info(str)
-    _log(Logger::INFO, str)
-  end
-
-  def initialize(global, conf)
+  def initialize( global, conf )
     @@conf = global
-    _prowl_conf_validate(global['Prowl'])
+    _prowl_conf_validate( global['Prowl'] )
     @application = conf['Application'] ? conf['Application'] : "IMAProwl"
     @user = conf['User']
     @pass = conf['Pass']
@@ -104,26 +47,132 @@ class IMAProwl
     @length = 1 if @length < 0
     @priority = conf['Priority'] ? conf['Priority'] : 0
     @notified = []
+    @enable = conf.has_key?('Enable') ? conf['Enable'] : true
+  end
+
+  # start() should run only once
+  def start
+    info "Starting..."
     connect()
-    unless @imap.capability.include?('IDLE')
+    unless @imap.capability.include?( 'IDLE' )
       error "Error: #{@host} does not support IDLE."
       begin
         @imap.disconnect
-      rescue
+      ensure
+        @enable = false
+        return
       end
-      return nil
     end
+    login()
+    check_unseen( false )
+    idler()
+  end
+
+  def restart
+    info "Restarting..."
+    connect()
+    login()
+    check_unseen( true )
+    idler()
+    debug "Restarted"
+  end
+
+  def stop
+    @imap.idle_done
+    debug "DONE IDLE."
+  end
+
+  def status
+    retried = false
+    debug "Check process status..."
+    begin
+      if @imap.disconnected?
+        @idle_thread.exit if @idle_thread.alive?
+        error "socket is disconnected. trying to reconnect..."
+        restart
+      elsif ! @idle_thread.alive?
+        error "IDLE thread is dead."
+        restart
+      end
+      if @interval > 0 && Time.now - @idle_time > 60 * @interval
+        info "encounter interval."
+        stop
+      end
+    rescue
+      @idle_thread.exit if @idle_thread.alive?
+      error $!.to_s
+      unless retried
+        retried = true
+        retry
+      end
+    end
+  end
+
+  private
+  def _prowl_conf_validate( val )
+    return if @@prowl_conf
+    @@prowl_conf = val
+    unless @@prowl_conf.kind_of?( Hash )
+      STDERR.print "Configuration Error: Prowl section must be Hash.\n"
+      exit 1
+    end
+    unless @@prowl_conf.has_key?( 'APIKey' )
+      STDERR.print "Configuration Error: APIKey must be given.\n"
+      exit 1
+    end
+    _init_logger()
+  end
+
+  def _init_logger
+    if @@conf['LogDir']
+      logdir = @@conf['LogDir']
+      Dir.mkdir( logdir ) unless File.exist?( logdir )
+      filename = File.join( logdir, "imaprowl.log" )
+      STDOUT.puts "All logs will be written into #{filename}."
+      STDOUT.flush
+      @@logger = Logger.new( filename, 'daily' )
+      @@logger.level = @@conf['Debug'] ? Logger::DEBUG : Logger::INFO
+      @@logger.datetime_format = "%Y-%m-%dT%H:%M:%S"
+    else
+      @@logger = nil
+      STDOUT.sync = true
+      STDERR.sync = true
+    end
+  end
+
+  def _log( severity, str )
+    if @@logger
+      @@logger.add( severity, str, @application )
+    else
+      format = "[%Y-%m-%dT%H:%M:%S##{Process.pid}] #{@application} - #{str}\n"
+      if severity == Logger::ERROR
+        STDERR.print Time.now.strftime( format )
+      else
+        print Time.now.strftime( format )
+      end
+    end
+  end
+
+  def debug( str )
+    _log( Logger::DEBUG, str )
+  end
+
+  def error( str )
+    _log( Logger::ERROR, str )
+  end
+
+  def info( str )
+    _log( Logger::INFO, str )
   end
 
   def login
     return true if @logged_in
-    ret = @imap.login(@user, @pass)
+    ret = @imap.login( @user, @pass )
     if ret.name != "OK"
       error "Failed to login: user: #{@user}@#{@host}."
       return false
     end
-    @imap.select(@mailbox)
-    check_unseen(false)
+    @imap.select( @mailbox )
     @logged_in = true
     return true
   end
@@ -141,17 +190,6 @@ class IMAProwl
     return @imap.disconnected?
   end
 
-  def run
-    info "Start."
-    idler()
-  end
-
-  def stop
-    @imap.idle_done
-    debug "Stop IDLE."
-  end
-
-  private
   def prowl( params = {} )
     uri = URI::parse( PROWL_API_ADD )
     if @@prowl_conf['ProxyHost']
@@ -178,7 +216,7 @@ class IMAProwl
   def check_unseen( prowl = false )
     debug "Checking UNSEEN mail."
 
-    unseen = @imap.search(['UNSEEN'])
+    unseen = @imap.search( ['UNSEEN'] )
     return unless unseen.size > 0
 
     unseen_set = Array.new
@@ -218,7 +256,7 @@ class IMAProwl
         body = attr['BODY[1]']
       end
 
-      body = NKF.nkf('-w', body)
+      body = NKF.nkf( '-w', body )
       body = body.split(//u)[0..@length].join
 
       # prowling
@@ -241,10 +279,9 @@ class IMAProwl
     # caching
     @notified = unseen_set
   end
- 
+
   def idler
-    return unless login()
-    @thread = Thread.new do 
+    @idle_thread = Thread.start do 
       loop do
         begin
           event = false
@@ -261,19 +298,21 @@ class IMAProwl
           check_unseen(true) if event
         rescue
           error "Error in idler(): #{$!}"
-          begin
-            ## unlock IDLE if it still exists.
-            @imap.idle_done 
-          rescue
-          end
+          ##begin
+          ##  ## unlock IDLE if it still exists.
+          ##  @imap.idle_done 
+          ##rescue
+          ##  debug "Error sending DONE."
+          ##end
+          debug "Exiting thread"
           Thread.current.exit
         end
         debug "idler(): Still in loop"
       end # loop
-    end
+    end # Thread
   end
   
-end
+end # class
 
 Dir.chdir(File.dirname(__FILE__))
 config = YAML.load_file('config.yml')
@@ -281,40 +320,27 @@ config = YAML.load_file('config.yml')
 # Create Account Thread
 application = Array.new
 config['Accounts'].each do |account|
-  a = IMAProwl.new(config, account)
-  next if a.nil?
-  a.run
-  application.push(a)
+  app = IMAProwl.new( config, account )
+  app.start()
+  application.push( app ) if app.enable
 end
 
 Signal.trap("INT") {
-  application.each { |a|
+  application.each { |app|
     begin
-      a.stop;
+      app.stop
     ensure
-      Thread.kill( a.thread ) if a.thread.alive?
+      sleep 1
+      app.idle_thread.exit if app.idle_thread.alive?
     end
   }
+  print "DEBUG: Number of Threads: #{Thread.list.size}\n"  
   exit
 }
 
 loop do
   sleep 60
-  application.each do |a|
-    begin
-      if a.interval > 0 && Time.now - a.idle_time > 60 * a.interval
-        a.stop
-      end
-      unless a.thread.alive?
-        a.error "socket is disconnected. trying to reconnect..."
-        a.connect
-        a.run
-        a.debug "Restarted"
-      end
-    rescue
-      Thread.kill( a.thread ) if a.thread.alive?
-      a.error $!.to_s
-      a.debug $!.backtrace.to_s
-    end
+  application.each do |app|
+    app.status
   end
 end
