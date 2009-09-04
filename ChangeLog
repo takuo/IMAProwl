@@ -1,5 +1,11 @@
 2009-09-04  takuo  <kitame at gmail.com>
 
+  * imaprowl.rb (@idle_thread): renamed to @loop_thread.
+  (@no_idle): boolean flag for non-IDLE supported account.
+  (checker): added. noop loop to check new unseen mail.
+
+2009-09-04  takuo  <kitame at gmail.com>
+
   * imaprowl.rb(check_unseen): should use FETCH BODY.PEEK instead of FETCH BODY.
   * tagged 0.7.1
 
