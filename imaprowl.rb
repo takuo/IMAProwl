@@ -221,7 +221,7 @@ class IMAProwl
 
     unseen_set = Array.new
 
-    data_set = @imap.fetch( unseen, "(ENVELOPE BODYSTRUCTURE BODY[1] UID)" )
+    data_set = @imap.fetch( unseen, "(ENVELOPE BODYSTRUCTURE BODY.PEEK[1] UID)" )
     data_set.each do |data|
       attr = data.attr
       unseen_set.push attr["UID"]
