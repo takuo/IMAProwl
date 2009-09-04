@@ -1,5 +1,10 @@
 2009-09-04  takuo  <kitame at gmail.com>
 
+  * imaprowl.rb(check_unseen): should use FETCH BODY.PEEK instead of FETCH BODY.
+  * tagged 0.7.1
+
+2009-09-04  takuo  <kitame at gmail.com>
+
   * imaprowl.rb: Refectoring and Refactoring.
   Hopefully fixed the blocking issue.
   (status): added to check thread availability.
