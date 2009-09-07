@@ -258,9 +258,9 @@ class IMAProwl
           part = attr['BODYSTRUCTURE']
         end
 
-        if Net::IMAP::BodyTypeMultipart.respond_to?('encoding') && part.encoding.upcase == "QUOTED-PRINTABLE"
+        if part.respond_to?('encoding') && part.encoding.upcase == "QUOTED-PRINTABLE"
           body = attr["BODY[1]"].unpack("M*").first
-        elsif Net::IMAP::BodyTypeMultipart.respond_to?('encoding') && part.encoding.upcase == "BASE64"
+        elsif part.respond_to?('encoding') && part.encoding.upcase == "BASE64"
           body = attr["BODY[1]"].unpack("m*").first
         else
           body = attr['BODY[1]']
