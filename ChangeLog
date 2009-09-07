@@ -1,4 +1,9 @@
-2009-09-07  takuo  <kitame at gmai.com>
+2009-09-07  takuo  <kitame at gmail.com>
+
+  * 0.8.2: fix again.
+  * imaprowl.rb (check_unseen): fix error caused by undefined method 'encoding'
+
+2009-09-07  takuo  <kitame at gmail.com>
 
   * Bug fix release : 0.8.1
   * imaprowl.rb (check_unseen): fix error caused by undefined method 'encoding'
