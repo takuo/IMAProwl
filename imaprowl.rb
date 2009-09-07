@@ -8,7 +8,7 @@
 # You can redistribute it and/or modify it under the same term as Ruby.
 #
 $:.insert(0, File.dirname(__FILE__))
-IMAPROWL_VERSION = "0.8"
+IMAPROWL_VERSION = "0.8.1"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -232,59 +232,62 @@ class IMAProwl
 
     data_set = @imap.fetch( unseen, "(ENVELOPE BODYSTRUCTURE BODY.PEEK[1] UID)" )
     data_set.each do |data|
-      attr = data.attr
-      unseen_set.push attr["UID"]
+      begin
+        attr = data.attr
+        unseen_set.push attr["UID"]
 
-      if @notified.include?( attr["UID"] )
-        debug "SKIP Already notified: UID=#{attr["UID"]}"
-        next
+        if @notified.include?( attr["UID"] )
+          debug "SKIP Already notified: UID=#{attr["UID"]}"
+          next
+        end
+
+        # header process
+        envelope = attr["ENVELOPE"]
+
+        from_name = envelope.from.first.name
+        from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
+
+        from = from_name ? NKF.nkf( '-mw', from_name ) : from_addr
+        subject = envelope.subject ?  NKF.nkf( '-mw', envelope.subject ): "Untitled"
+        event = "#{subject} from: #{from}"
+
+        # body process
+        if attr['BODYSTRUCTURE'].kind_of?( Net::IMAP::BodyTypeMultipart )
+          part = attr['BODYSTRUCTURE'].parts[0]
+        else
+          part = attr['BODYSTRUCTURE']
+        end
+
+        if Net::IMAP::BodyTypeMultipart.respond_to?('encoding') && part.encoding.upcase == "QUOTED-PRINTABLE"
+          body = attr["BODY[1]"].unpack("M*").first
+        elsif Net::IMAP::BodyTypeMultipart.respond_to?('encoding') && part.encoding.upcase == "BASE64"
+          body = attr["BODY[1]"].unpack("m*").first
+        else
+          body = attr['BODY[1]']
+        end
+
+        body = NKF.nkf( '-w', body )
+        body = body.split(//u)[0..@length].join
+
+        # prowling
+        if prowl
+          info "Prowling..."
+          debug "Prowling: " + event + " " + body
+          presp = prowl( :apikey=> @@prowl_conf['APIKey'],
+                         :application => @application,
+                         :event => event,
+                         :description => body,
+                         :priority => @priority
+                         )
+          debug "Response: #{presp.code}"
+        else
+          debug "Not Prowled: UID=#{attr["UID"]}"
+        end
+      rescue
+        error "Error while parsing mail: UID=#{attr["UID"]}. Skipping..."
+        debug $!
       end
-
-      # header process
-      envelope = attr["ENVELOPE"]
-
-      from_name = envelope.from.first.name
-      from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
-
-      from = from_name ? NKF.nkf( '-mw', from_name ) : from_addr
-      subject = envelope.subject ?  NKF.nkf( '-mw', envelope.subject ): "Untitled"
-      event = "#{subject} from: #{from}"
-
-      # body process
-      if attr['BODYSTRUCTURE'].kind_of?( Net::IMAP::BodyTypeMultipart )
-        part = attr['BODYSTRUCTURE'].parts[0]
-      else
-        part = attr['BODYSTRUCTURE']
-      end
-
-      if part.encoding && part.encoding.upcase == "QUOTED-PRINTABLE"
-        body = attr["BODY[1]"].unpack("M*").first
-      elsif part.encoding && part.encoding.upcase == "BASE64"
-        body = attr["BODY[1]"].unpack("m*").first
-      else
-        body = attr['BODY[1]']
-      end
-
-      body = NKF.nkf( '-w', body )
-      body = body.split(//u)[0..@length].join
-
-      # prowling
-      if prowl
-        info "Prowling..."
-        debug "Prowling: " + event + " " + body
-        presp = prowl( :apikey=> @@prowl_conf['APIKey'],
-                       :application => @application,
-                       :event => event,
-                       :description => body,
-                       :priority => @priority
-                      )
-        debug "Response: #{presp.code}"
-      else
-        debug "Not Prowled: UID=#{attr["UID"]}"
-      end
-
     end
-
     # caching
     @notified = unseen_set
   end
