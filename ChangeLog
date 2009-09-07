@@ -1,3 +1,9 @@
+2009-09-07  takuo  <kitame at gmai.com>
+
+  * Bug fix release : 0.8.1
+  * imaprowl.rb (check_unseen): fix error caused by undefined method 'encoding'
+  Catch the exception while parsing a Mail.
+
 2009-09-04  takuo  <kitame at gmail.com>
 
   * merge non-idle-support branch
