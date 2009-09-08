@@ -1,10 +1,11 @@
 ##
-## example configuration (version >= 0.8)
+## example configuration (version >= 0.9)
 ##
 ## 
 ## if undefine LogDir, Debug mode is forcefully enabled.
 LogDir: logs/
 Debug: false
+Daemon: true
 
 ## API Key can be defined up to 5-keys with comma separated values.
 Prowl:

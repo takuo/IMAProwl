@@ -1,18 +1,37 @@
-IMAProwl Version 0.8
+IMAProwl Version 0.9
 
  * Requirements
+
   - Ruby 1.9.0 or later with OpenSSL module.
   - Prowl account. (get your account at http://prowl.weks.net/)
   - Prowl iPhone application from AppStore.
 
  * Instruction
-  - edit config.yml
-  - execute ./imaprowl.rb
 
- * Configuration file - config.yml
+  - edit configuration file.
+  - execute imaprowl.rb with ruby1.9
+
+ * Command line option
+
+  -  -c, --config FILENAME       Specify configuration file.
+  -  -q, --daemon                Enable daemon mode.
+  -  -d, --debug                 Enable debug mode.
+
+ * Configuration file
+
+  - load path order. (it'll be overridden with -c option)
+
+    1. $HOME/.imaprowl.conf
+    2. `pwd`/imaprowl.conf
+    3. `pwd`/config.yml (deprecated)
+    4. dirname($0)/imaprowl.conf
+
+
+  - config description
 
   LogDir: <log directory, ex: "logs/". Don't logging if it's not defined, output all logs into STDOUT/ERR and turn on debug mode forcefully.>
   Debug: <optional: enable debug output, default: false>
+  Daemon: <optional: enable daemon mode, default: false>
 
   Prowl:
    APIKey: <the prowl apikey of your account>
