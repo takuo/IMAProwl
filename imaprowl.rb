@@ -7,13 +7,18 @@
 #
 # You can redistribute it and/or modify it under the same term as Ruby.
 #
+STDOUT.sync = true
+STDERR.sync = true
+
 $:.insert(0, File.dirname(__FILE__))
-IMAPROWL_VERSION = "0.8.1"
+
+IMAPROWL_VERSION = "0.9"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
 end
 
+require 'optparse'
 require 'uri'
 require 'net/https'
 require 'net/imap'
@@ -54,7 +59,7 @@ class IMAProwl
 
   # start() should run only once
   def start
-    info "Starting..."
+    info "Starting."
     connect()
     unless @imap.capability.include?( 'IDLE' )
       error "Error: #{@host} does not support IDLE."
@@ -138,14 +143,11 @@ class IMAProwl
       Dir.mkdir( logdir ) unless File.exist?( logdir )
       filename = File.join( logdir, "imaprowl.log" )
       STDOUT.puts "All logs will be written into #{filename}."
-      STDOUT.flush
       @@logger = Logger.new( filename, 'daily' )
       @@logger.level = @@conf['Debug'] ? Logger::DEBUG : Logger::INFO
       @@logger.datetime_format = "%Y-%m-%dT%H:%M:%S"
     else
       @@logger = nil
-      STDOUT.sync = true
-      STDERR.sync = true
     end
   end
 
@@ -284,7 +286,7 @@ class IMAProwl
           debug "Not Prowled: UID=#{attr["UID"]}"
         end
       rescue
-        error "Error while parsing mail: UID=#{attr["UID"]}. Skipping..."
+        error "Error while parsing mail: UID=#{attr["UID"]}. Skipped."
         debug $!
       end
     end
@@ -303,7 +305,7 @@ class IMAProwl
             event = true if @imap.responses["EXISTS"][-1]
             @imap.responses.delete("EXISTS")
           end
-          debug "Received EXISTS." if event
+          info "Received EXISTS." if event
           check_unseen( true ) if event
           sleep( @noop )
         rescue
@@ -326,19 +328,13 @@ class IMAProwl
             if resp.kind_of?( Net::IMAP::UntaggedResponse ) and
                resp.name == "EXISTS"
               event = true
-              debug "Received EXISTS."
+              info "Received EXISTS."
               @imap.idle_done
             end
           end
           check_unseen( true ) if event
         rescue
           error "Error in idler(): #{$!}"
-          ##begin
-          ##  ## unlock IDLE if it still exists.
-          ##  @imap.idle_done 
-          ##rescue
-          ##  debug "Error sending DONE."
-          ##end
           debug "Exiting thread"
           Thread.current.exit
         end
@@ -349,10 +345,66 @@ class IMAProwl
 
 end # class
 
-Dir.chdir(File.dirname(__FILE__))
-config = YAML.load_file('config.yml')
+## __MAIN__
 
-# Create Account Thread
+## command line options
+ProgramConfig = Hash.new
+opts = OptionParser.new
+opts.on( "-c", "--config FILENAME", String, "Specify the config file." ) { |v| ProgramConfig[:config] = v }
+opts.on( "-q", "--daemon",nil, "Enable daemon mode.") { |v| ProgramConfig[:daemon] = true }
+opts.on( "-d", "--debug", nil, "Enable debug output." ) { |v| ProgramConfig[:debug] = true }
+opts.version = IMAPROWL_VERSION
+opts.program_name = "imaprowl"
+opts.parse!( ARGV )
+
+## config file
+config_order = [
+  File.join( ENV['HOME'], '.imaprowl.conf' ),
+  File.join( Dir.pwd, 'imaprowl.conf' ),
+  File.join( Dir.pwd, 'config.yml' ),
+  File.join( File.dirname( __FILE__ ), 'imaprowl.conf' )
+]
+
+filename = nil
+if ProgramConfig[:config]
+  if File.exist?( ProgramConfig[:config] )
+    filename = ProgramConfig[:config]
+  else
+    STDERR.print "Configuration file does not exist: #{ProgramConfig[:config]}\n"
+    exit 1
+  end
+else
+  config_order.each do |conf|
+    next unless File.exist?( conf )
+    filename = conf
+    break
+  end
+end
+if filename.nil?
+  STDERR.print "No configuration file exist.\n"
+  STDERR.print "File candidates are:\n"
+  STDERR.print config_order.join("\n")
+  STDERR.print "\n"
+  exit 1
+end
+
+STDOUT.print "LoadConf: #{filename}\n" 
+config = YAML.load_file( filename )
+config["Debug"] = true if ProgramConfig[:debug]
+
+
+## Daemon mode
+if ProgramConfig[:daemon] || config['Daemon']
+  begin
+    Process.daemon( true, true )
+  rescue
+    STDERR.print $!
+    exit 1
+  end
+  STDOUT.print "Daemonized. PID=#{Process.pid}\n"
+end
+
+## Create Account Thread
 application = Array.new
 config['Accounts'].each do |account|
   app = IMAProwl.new( config, account )
@@ -361,22 +413,22 @@ config['Accounts'].each do |account|
   application.push( app )
 end
 
+## Signal trap
 Signal.trap("INT") {
-  application.each { |app|
-    begin
-      app.stop
-    ensure
-      sleep 1
-      app.loop_thread.exit if app.loop_thread.alive?
-    end
-  }
-  print "DEBUG: Number of Threads: #{Thread.list.size}\n"
+  application.each do |app|
+    app.loop_thread.exit if app.loop_thread.alive?
+    app.stop
+  end
+  sleep 1
   exit
 }
 
+## main loop
 loop do
   sleep 60
   application.each do |app|
     app.status
   end
 end
+
+## __END__
