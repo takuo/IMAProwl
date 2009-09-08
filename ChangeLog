@@ -1,3 +1,11 @@
+2009-09-08  takuo  <kitame at debian.org>
+
+  * 0.9
+  * imaprowl.rb: STDOUT/STDERR always sync=true
+  support daemonize with Process.daemon.
+  config file load path order.
+  Added some command line options. -c (config file), -q (daemon), -d (debug)
+
 2009-09-07  takuo  <kitame at gmail.com>
 
   * 0.8.2: fix again.
