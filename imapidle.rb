@@ -1,3 +1,13 @@
+#
+#
+# This code has been copied from Ruby-1.9.2's Net::IMAP.
+#
+# Copyright (C) 2000  Shugo Maeda <shugo@ruby-lang.org>
+#
+# This library is distributed under the terms of the Ruby license.
+# You can freely distribute/modify this library.
+#
+#
 
 class Net::IMAP
   def idle(&response_handler)
