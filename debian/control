@@ -1,0 +1,22 @@
+Source: imaprowl
+Section: mail
+Priority: optional
+Maintainer: Takuo KITAME <kitame@debian.org>
+Build-Depends: debhelper (>= 7.0.50~)
+Standards-Version: 3.8.3
+Homepage: http://github.com/takuo/IMAProwl
+
+Package: imaprowl
+Architecture: all
+Depends: ${misc:Depends}, ruby1.9, libopenssl-ruby1.9
+Description: IMAP new mail notification utility for iPhone using Prowl Public API
+ Prowl is a Service and an App for iPhone's Push Notification service.
+ see http://prowl.weks.net/ for more about Prowl.
+ .
+ IMAProwl is an utility script to notify New Mail of IMAP Server with Prowl
+ Service.
+ It's very useful to push notification of GMail or any other IMAP Mail Service
+ to your iPhone device.
+ .
+ This program uses IMAP/IDLE(RFC2177) or IMAP/NOOP to check the new mail on
+ IMAP server.

@@ -1,0 +1,17 @@
+#!/usr/bin/make -f
+# Sample debian/rules that uses debhelper. 
+# This file is public domain software, originally written by Joey Hess.
+#
+# This version is for packages that are architecture independent.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+PACKAGE=imaprowl
+
+%:
+	dh $@
+
+override_dh_install:
+	install -m 0644 imapidle.rb `pwd`/debian/$(PACKAGE)/usr/lib/ruby/1.9.0/
+	install -m 0755 imaprowl.rb `pwd`/debian/$(PACKAGE)/usr/bin/imaprowl

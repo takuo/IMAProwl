@@ -1,0 +1,5 @@
+imaprowl (0.9.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #600000)
+
+ -- Takuo KITAME <kitame@debian.org>  Wed, 09 Sep 2009 20:40:07 +0900
