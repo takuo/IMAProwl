@@ -20,7 +20,7 @@ Accounts:
   Host: imap.gmail.com
   BodyLength: 100
   Priority: 0
-  Interval: 7    # thread availability check interval, recommend you set 6-7 for GMail. (in minutes)
+  Interval: 7    # Interval of checking thread availability. Recommend you set 6-7 for GMail. (in minutes)
  -
   Application: SoftBank
   User: yourname
@@ -29,5 +29,5 @@ Accounts:
   BodyLength: 256
   Priority: 0
   NOOPInterval: 20  # NOOP(check) interval with no-IDLE mode. (in seconds)
-  NoIDLE: true      # unnecessary, it should be auto-detected.
-  Enable: false     # diable this account
+  NoIDLE: true      # unnecessary, because it should be auto-detected.
+  Enable: false     # diable this account. Set true to enable this account.

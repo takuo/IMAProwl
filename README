@@ -3,12 +3,13 @@ IMAProwl Version 0.9
  * Requirements
 
   - Ruby 1.9.0 or later with OpenSSL module.
-  - Prowl account. (get your account at http://prowl.weks.net/)
-  - Prowl iPhone application from AppStore.
+  - Prowl service account. (free to get your account, http://prowl.weks.net/)
+  - Prowl iPhone application from AppStore, not free.
+  - IMAP server should support IMAPs(IMAP over SSL) or TLS.
 
  * Instruction
 
-  - edit configuration file.
+  - edit example configuration file and copy it to ~/.imaprowl.conf
   - execute imaprowl.rb with ruby1.9
 
  * Command line option
@@ -21,43 +22,58 @@ IMAProwl Version 0.9
 
   - load path order. (it'll be overridden with -c option)
 
-    1. $HOME/.imaprowl.conf
-    2. `pwd`/imaprowl.conf
-    3. `pwd`/config.yml (deprecated)
-    4. dirname($0)/imaprowl.conf
-
+    1. -c option
+    2. $HOME/.imaprowl.conf
+    3. `pwd`/imaprowl.conf
+    4. `pwd`/config.yml (deprecated)
+    5. dirname($0)/imaprowl.conf
 
   - config description
 
-  LogDir: <log directory, ex: "logs/". Don't logging if it's not defined, output all logs into STDOUT/ERR and turn on debug mode forcefully.>
-  Debug: <optional: enable debug output, default: false>
-  Daemon: <optional: enable daemon mode, default: false>
+  LogDir: <String>
+   log directory, ex: "/home/foo/logs/".
+   If it's not defined, output all logs into STDOUT/ERR and turn on debug mode forcefully.
+  Debug: <Boolean>
+    [optional] to enable debug output, default: false
+  Daemon: <Boolean>
+    [optional] to enable daemon mode, default: false
 
   Prowl:
-   APIKey: <the prowl apikey of your account>
-   ProxyHost: <http proxy host address if it's available>
-   ProxyPort: <http proxy port number>
-   ProxyUser: <http proxy auth username if it's required>
-   ProxyPass: <http proxy auth password if it's required>
+   APIKey: <String>
+    The prowl apikey of your account
+   ProxyHost: <String>
+   ProxyPort: <Int>
+   ProxyUser: <String>
+   ProxyPass: <String>
+    [optional] HTTP Proxy settings if it's available.
 
   Accounts:
   -
-    Appication: <application name for prowling> 
-    User: <username for IMAP server>
-    Pass: <password for IMAP server>
-    Host: <hostname of IMAP server, SSL support is required>
-    Port: <optional: TCP port number of IMAP server, default: 993>
-    Priority: <optional: Notification Priority(int): -2(low) to 2(high), default: 0>
-    MailBox: <optional: mailbox to check UNSEEN, default: INBOX>
-    BodyLength: <optional: body length for prowl notification, defaul:100, Max: 1000>
-    Interval: <optional: IDLE Thread alive check interval, default: 20 (minutes)>
-    NOOPInterval: <optional: NOOP interval for no-IDLE mode, it should be really short about 30 or so. default is 30 (seconds)>
-    NoIDLE: <optional: force no-IDLE mode, default: false>
-    Enable: <optional: false to disable this account, default: true>
-  -
-    <you can define another and more accounts>
-
+    Appication: <String>
+     application name for prowl. (Identity of account)
+    User: <String>
+     username for IMAP server.
+    Pass: <String>
+     password for IMAP server.
+    Host: <String>
+     hostname or IP address of IMAP server, SSL/TLS support is required.
+    Port: <Int>
+     [optional] TCP port number of IMAP server, default: 993
+    Priority: <Int>
+     [optional] Notification Priority: -2(low) to 2(high), default: 0
+    MailBox: <String>
+     [optional] mailbox to check UNSEEN, default: INBOX
+    BodyLength: <Int>
+     [optional] body length for prowl notification, defaul:100, Max: 1000
+    Interval: <Int> (in minutes)
+     [optional] IDLE Thread alive check interval, default: 20
+    NOOPInterval: <Int> (in seconds)
+     [optional] NOOP interval for no-IDLE mode, it should be really short about 30 or so. default: 30
+    NoIDLE: <Boolean>
+     [optional] force no-IDLE mode, default: false.
+    Enable: <Boolean>
+     [optional] false to disable this account, default: true
 
 -- 
-Takuo Kitame
+Takuo Kitame.
 http://github.com/takuo/
