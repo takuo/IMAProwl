@@ -12,6 +12,25 @@ PACKAGE=imaprowl
 %:
 	dh $@
 
+override_dh_auto_clean:
+	dh_auto_clean
+	-rm -f debian/imaprowl.1
+	-rm -f imaprowl
+
 override_dh_install:
-	install -m 0644 imapidle.rb `pwd`/debian/$(PACKAGE)/usr/lib/ruby/1.9.0/
-	install -m 0755 imaprowl.rb `pwd`/debian/$(PACKAGE)/usr/bin/imaprowl
+	install -m 0644	imapidle.rb `pwd`/debian/$(PACKAGE)/usr/lib/ruby/1.9.0/
+	install -m 0755 imaprowl `pwd`/debian/$(PACKAGE)/usr/bin/
+
+override_dh_auto_build:
+	dh_auto_build
+
+	sed -e 's%^#!/usr/bin/ruby$$%#/usr/bin/ruby1.9%g' \
+	imaprowl.rb > imaprowl
+
+	xsltproc --nonet \
+              --param make.year.ranges 1 \
+              --param make.single.year.ranges 1 \
+              --param man.charmap.use.subset 0 \
+              -o debian/ \
+              /usr/share/xml/docbook/stylesheet/nwalsh/manpages/docbook.xsl \
+              debian/manpage.xml
