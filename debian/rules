@@ -14,7 +14,7 @@ PACKAGE=imaprowl
 
 override_dh_auto_clean:
 	dh_auto_clean
-	-rm -f debian/imaprowl.1
+	-rm -f imaprowl.1
 	-rm -f imaprowl
 
 override_dh_install:
@@ -31,6 +31,6 @@ override_dh_auto_build:
               --param make.year.ranges 1 \
               --param make.single.year.ranges 1 \
               --param man.charmap.use.subset 0 \
-              -o debian/ \
+              -o ./ \
               /usr/share/xml/docbook/stylesheet/nwalsh/manpages/docbook.xsl \
               debian/manpage.xml
