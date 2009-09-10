@@ -24,7 +24,7 @@ override_dh_install:
 override_dh_auto_build:
 	dh_auto_build
 
-	sed -e 's%^#!/usr/bin/ruby$$%#/usr/bin/ruby1.9%g' \
+	sed -e 's%^#!/usr/bin/ruby$$%#!/usr/bin/ruby1.9%g' \
 	imaprowl.rb > imaprowl
 
 	xsltproc --nonet \
