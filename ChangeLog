@@ -1,3 +1,14 @@
+2009-09-10  Takuo Kitame <kitame@debian.org>
+
+  * Added debian/manpage.xml
+  * debian/rules (build): added rule for building manpage.
+  replace #!/usr/bin/ruby to ruby1.9
+  * debian/control (Description): update
+  (Build-Depends): added docbook-xsl, xsltproc, docbook-xml
+  * README: update
+  * config.yml: update
+  * Tagged as 0.9.2
+
 2009-09-09  Takuo Kitame <kitame@debian.org>
 
   * AUTHORS: Added.
