@@ -5,9 +5,11 @@
   (iconv_mime_decode): MIME decode and convert to UTF-8.
   (check_unseen): use iconv instead of NKF.
   Don't prowl body if it's contains invalid UTF-8 charactor.
+  Subject will be shorten length with value of SubjectLength
+  clear @notified cache if no UNSEEN mail.
+  rescue all exception while processing text and will prowl with error message.
   (initialize): default SubjectLength is 30
-  (check_unseen): Subject will be shorten length with value of SubjectLength
-
+ 
   * LICENSE: fixed typo.
   * tagged as 0.9.3
 
