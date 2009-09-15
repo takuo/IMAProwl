@@ -12,7 +12,7 @@ STDERR.sync = true
 
 $:.insert(0, File.dirname(__FILE__))
 
-IMAPROWL_VERSION = "0.9.2"
+IMAPROWL_VERSION = "0.9.3"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -23,9 +23,15 @@ require 'uri'
 require 'net/https'
 require 'net/imap'
 require 'yaml'
-require 'nkf'
 require 'logger'
 require 'imapidle' unless Net::IMAP.respond_to?("idle")
+begin
+  require 'iconv'
+  $iconv = true
+rescue LoadError
+  require 'nkf'
+  $iconv = false
+end
 
 class IMAProwl
 
@@ -123,6 +129,28 @@ class IMAProwl
   end
 
   private
+  def iconv_mime_decode( input, out_charset = 'utf-8' )
+    return NKF.nkf( '-mw', input ) unless $iconv
+    while input.sub!(/(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)(?:(?:\r\n)?[\s\t])+(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)/, '\1\2')
+    end
+    begin
+      ret = input.sub!( /=\?([A-Za-z0-9-]+)\?([BQbq])\?([^\?]+)\?=/ ) {
+        charset = $1
+        enc = $2.upcase
+        word = $3
+        debug "Decode MIME hedaer: Charset: #{charset}, Encode: #{enc}, Word: #{word}"
+        word = word.unpack( { "B"=>"m*", "Q"=>"M*" }[enc] ).first
+        Iconv.conv( out_charset, charset, word )
+      }
+      return ret ? iconv_mime_decode( input ) : input
+    rescue
+      # "Error while convert MIME string."
+      error "Error while converting MIME header: #{input}"
+      debug "E: #{$!}"
+      return input
+    end
+  end
+
   def _prowl_conf_validate( val )
     return if @@prowl_conf
     @@prowl_conf = val
@@ -249,8 +277,8 @@ class IMAProwl
         from_name = envelope.from.first.name
         from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
 
-        from = from_name ? NKF.nkf( '-mw', from_name ) : from_addr
-        subject = envelope.subject ?  NKF.nkf( '-mw', envelope.subject ): "Untitled"
+        from = from_name ? iconv_mime_decode( from_name ) : from_addr
+        subject = envelope.subject ? iconv_mime_decode( envelope.subject ) : "Untitled"
         event = "#{subject} from: #{from}"
 
         # body process
@@ -264,16 +292,29 @@ class IMAProwl
           body = attr["BODY[1]"].unpack("M*").first
         elsif part.respond_to?('encoding') && part.encoding.upcase == "BASE64"
           body = attr["BODY[1]"].unpack("m*").first
-        else
+        else # 7bit?
           body = attr['BODY[1]']
         end
-
-        body = NKF.nkf( '-w', body )
+        
+        if part.param['CHARSET'] && part.param['CHARSET'].upcase != "UTF-8"
+          debug "Convert body charset from #{part.param['CHARSET']}"
+          begin
+            if $iconv
+              body = Iconv.conv( 'UTF-8', part.param['CHARSET'], body )
+            else
+              body = NKF.nkf( '-w', body )
+            end
+          rescue
+            error "Error while converting body from #{part.param['CHARSET']}"
+            debug "E: #{$!}"
+            body = "[Body contains invalid charactor]"
+          end
+        end
         body = body.split(//u)[0..@length].join
 
         # prowling
         if prowl
-          info "Prowling..."
+          info "Prowling... UID=#{attr["UID"]}"
           debug "Prowling: " + event + " " + body
           presp = prowl( :apikey=> @@prowl_conf['APIKey'],
                          :application => @application,
@@ -414,7 +455,15 @@ config['Accounts'].each do |account|
 end
 
 ## Signal trap
-Signal.trap("INT") {
+Signal.trap(:INT) {
+  application.each do |app|
+    app.loop_thread.exit if app.loop_thread.alive?
+    app.stop
+  end
+  sleep 1
+  exit
+}
+Signal.trap(:TERM) {
   application.each do |app|
     app.loop_thread.exit if app.loop_thread.alive?
     app.stop
