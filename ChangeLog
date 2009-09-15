@@ -1,3 +1,13 @@
+2009-09-15  Takuo Kitame <kitame@debian.org>
+
+  * imaprowl.rb: use Iconv if it's available.
+  added Signal.trap(:TERM).
+  (iconv_mime_decode): MIME decode and convert to UTF-8.
+  (check_unseen): use iconv instead of NKF.
+  Don't prowl body if it's contains invalid UTF-8 charactor.
+  * LICENSE: fixed typo.
+  * tagged as 0.9.3
+
 2009-09-10  Takuo Kitame <kitame@debian.org>
 
   * Added debian/manpage.xml
