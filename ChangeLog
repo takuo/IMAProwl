@@ -8,10 +8,11 @@
   Subject will be shorten length with value of SubjectLength
   clear @notified cache if no UNSEEN mail.
   rescue all exception while processing text and will prowl with error message.
+  nil check before checking variable content.
   (initialize): default SubjectLength is 30
  
   * LICENSE: fixed typo.
-  * tagged as 0.9.3
+  * tagged as 1.0.0
 
 2009-09-10  Takuo Kitame <kitame@debian.org>
 

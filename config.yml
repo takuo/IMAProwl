@@ -19,6 +19,7 @@ Accounts:
   Pass: password
   Host: imap.gmail.com
   BodyLength: 100
+  SubjectLength: 20
   Priority: 0
   Interval: 7    # Interval of checking thread availability. Recommend you set 6-7 for GMail. (in minutes)
  -
@@ -27,6 +28,7 @@ Accounts:
   Pass: password
   Host: imap.softbank.jp
   BodyLength: 256
+  SubjectLength: 20
   Priority: 0
   NOOPInterval: 20  # NOOP(check) interval with no-IDLE mode. (in seconds)
   NoIDLE: true      # unnecessary, because it should be auto-detected.
