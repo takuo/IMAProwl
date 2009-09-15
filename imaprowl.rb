@@ -258,7 +258,10 @@ class IMAProwl
     debug "Checking UNSEEN mail."
 
     unseen = @imap.search( ['UNSEEN'] )
-    return unless unseen.size > 0
+    if unseen.size == 0
+      @notified = []
+      return
+    end
 
     unseen_set = Array.new
 
@@ -276,50 +279,69 @@ class IMAProwl
         # header process
         envelope = attr["ENVELOPE"]
 
-        from_name = envelope.from.first.name
-        from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
+        begin
+          from_name = envelope.from.first.name
+          from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
 
-        from = from_name ? iconv_mime_decode( from_name ) : from_addr
-        subject = envelope.subject ? iconv_mime_decode( envelope.subject ) : "Untitled"
-        shorten_subject = subject.split(//u)[0..@subject_length].join
-        if subject.length != shorten_subject
-          subject = shorten_subject + "..."
+          from = from_name ? iconv_mime_decode( from_name ) : from_addr
+        rescue
+          error "Error: Invalid From."
+          debug $!.to_s
+          from = "[Invalid From]"
         end
+
+        begin
+          subject = envelope.subject ? iconv_mime_decode( envelope.subject ) : "Untitled"
+          if subject.split(//u).size > @subject_length
+            subject = subject.split(//u)[0..@subject_length].join + "..."
+          end
+        rescue
+          error "Error: Invalid Subject."
+          debug $!.to_s
+          subject = "[Invalid Subject]"
+        end
+
         event = "#{subject} from: #{from}"
 
         # body process
-        if attr['BODYSTRUCTURE'].kind_of?( Net::IMAP::BodyTypeMultipart )
-          part = attr['BODYSTRUCTURE'].parts[0]
-        else
-          part = attr['BODYSTRUCTURE']
-        end
-
-        if part.respond_to?('encoding') && part.encoding.upcase == "QUOTED-PRINTABLE"
-          body = attr["BODY[1]"].unpack("M*").first
-        elsif part.respond_to?('encoding') && part.encoding.upcase == "BASE64"
-          body = attr["BODY[1]"].unpack("m*").first
-        else # 7bit?
-          body = attr['BODY[1]']
-        end
-        
-        if part.param['CHARSET'] && part.param['CHARSET'].upcase != "UTF-8"
-          debug "Convert body charset from #{part.param['CHARSET']}"
-          begin
-            if $iconv
-              body = Iconv.conv( 'UTF-8', part.param['CHARSET'], body )
-            else
-              body = NKF.nkf( '-w', body )
-            end
-          rescue
-            error "Error while converting body from #{part.param['CHARSET']}"
-            debug "E: #{$!}"
-            body = "[Body contains invalid charactor]"
+        begin
+          if attr['BODYSTRUCTURE'].kind_of?( Net::IMAP::BodyTypeMultipart )
+            part = attr['BODYSTRUCTURE'].parts[0]
+          else
+            part = attr['BODYSTRUCTURE']
           end
-        end
-
-        shorten_body = body.split(//u)[0..@body_length].join
-        if body.length != shorten_body.length
-          body = shorten_body + "..."
+        
+          if part.media_type != "TEXT"
+            body = "[%s/%s]" % [ part.media_type, part.subtype ]
+          elsif part.respond_to?('encoding') && part.encoding == "QUOTED-PRINTABLE"
+            body = attr["BODY[1]"].unpack("M*").first
+          elsif part.respond_to?('encoding') && part.encoding == "BASE64"
+            body = attr["BODY[1]"].unpack("m*").first
+          else # 7bit?
+            body = attr['BODY[1]']
+          end
+        
+          if part.param['CHARSET'] && part.param['CHARSET'] != "UTF-8"
+            debug "Convert body charset from #{part.param['CHARSET']}"
+            begin
+              if $iconv
+                body = Iconv.conv( 'UTF-8', part.param['CHARSET'], body )
+              else
+                body = NKF.nkf( '-w', body )
+              end
+            rescue
+              error "Error while converting body from #{part.param['CHARSET']}"
+              debug "E: #{$!}"
+              body = "[Body contains invalid charactor]"
+            end
+          end
+          if body.split(//u).size > @body_length
+            body = body.split(//u)[0..@body_length].join + "..."
+          end
+        rescue
+          error "Error: Could not parse body text"
+          debug $!.to_s
+          body = "[Could not parse body]"
         end
 
         # prowling
