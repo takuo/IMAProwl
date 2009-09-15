@@ -1,3 +1,9 @@
+imaprowl (1.0.0-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Takuo KITAME <kitame@debian.org>  Wed, 16 Sep 2009 08:23:00 +0900
+
 imaprowl (0.9.2-2) unstable; urgency=low
 
   * debian/copyright: mentions copyright of imapidle.rb.
