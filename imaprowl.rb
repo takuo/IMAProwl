@@ -55,8 +55,10 @@ class IMAProwl
     @mailbox = conf['MailBox'] ? conf['MailBox'] : "INBOX"
     @interval = conf['Interval'] ? conf['Interval'] : 20
     @noop = conf['NOOPInterval'] ? conf['NOOPInterval'] : 30
-    @length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
-    @length = 1 if @length < 0
+    @subject_length = conf['SubjectLength'] ? conf['SubjectLength'] - 1 : 30
+    @body_length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
+    @body_length = 1 if @body_length < 0
+    @subject_length = 1 if @subject_length < 0
     @priority = conf['Priority'] ? conf['Priority'] : 0
     @notified = []
     @enable = conf.has_key?('Enable') ? conf['Enable'] : true
@@ -279,6 +281,10 @@ class IMAProwl
 
         from = from_name ? iconv_mime_decode( from_name ) : from_addr
         subject = envelope.subject ? iconv_mime_decode( envelope.subject ) : "Untitled"
+        shorten_subject = subject.split(//u)[0..@subject_length].join
+        if subject.length != shorten_subject
+          subject = shorten_subject + "..."
+        end
         event = "#{subject} from: #{from}"
 
         # body process
@@ -310,7 +316,11 @@ class IMAProwl
             body = "[Body contains invalid charactor]"
           end
         end
-        body = body.split(//u)[0..@length].join
+
+        shorten_body = body.split(//u)[0..@body_length].join
+        if body.length != shorten_body.length
+          body = shorten_body + "..."
+        end
 
         # prowling
         if prowl
