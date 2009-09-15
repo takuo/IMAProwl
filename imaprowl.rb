@@ -321,7 +321,7 @@ class IMAProwl
             body = attr['BODY[1]']
           end
         
-          if part.param['CHARSET'] && part.param['CHARSET'] != "UTF-8"
+          if part.param && part.param['CHARSET'] && part.param['CHARSET'] != "UTF-8"
             debug "Convert body charset from #{part.param['CHARSET']}"
             begin
               if $iconv
@@ -331,10 +331,11 @@ class IMAProwl
               end
             rescue
               error "Error while converting body from #{part.param['CHARSET']}"
-              debug "E: #{$!}"
+              debug $!.to_s
               body = "[Body contains invalid charactor]"
             end
           end
+
           if body.split(//u).size > @body_length
             body = body.split(//u)[0..@body_length].join + "..."
           end
