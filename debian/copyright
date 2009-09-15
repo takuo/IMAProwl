@@ -8,10 +8,15 @@ Upstream Author:
 
     Takuo KITAME <kitame@debian.org> 
 
+  imapidle.rb has been copy'n pasted from Net::IMAP of ruby-1.9.2
+
+    Shugo Maeda <shugo@ruby-lang.org>
+    
 
 Copyright:
 
-    Copyright (C) 2009 Takuo Kitame
+    Copyright (C) 2009  Takuo Kitame.
+    Copyright (C) 2000  Shugo Maeda <shugo@ruby-lang.org>
 
 License:
 
