@@ -1,3 +1,10 @@
+2009-09-16  Takuo Kitame <kitame@debian.org>
+
+  * imaprowl.rb (check_unseen): should retry to prowl if fail to prowl.
+  * debian/*: Depends on ruby1.9.1
+
+  * tagged as 1.0.1
+
 2009-09-15  Takuo Kitame <kitame@debian.org>
 
   * imaprowl.rb: use Iconv if it's available.
