@@ -1,5 +1,11 @@
 2009-09-16  Takuo Kitame <kitame@debian.org>
 
+  * New branch: 1.1
+  * imaprowl.rb (get_text_part): try to get TEXT part of a mail.
+  (check_unseen): try to get first text part as body if possible.
+
+2009-09-16  Takuo Kitame <kitame@debian.org>
+
   * imaprowl.rb (check_unseen): should retry to prowl if fail to prowl.
   * debian/*: Depends on ruby1.9.1
 
