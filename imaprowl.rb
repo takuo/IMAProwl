@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl notification for IMAP new mail
-# Version: 1.0.0
+# Version: 1.0.1
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
@@ -12,7 +12,7 @@ STDERR.sync = true
 
 $:.insert(0, File.dirname(__FILE__))
 
-IMAPROWL_VERSION = "1.0.0"
+IMAPROWL_VERSION = "1.0.1"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -254,7 +254,7 @@ class IMAProwl
     return http.request(request, query.join('&'))
   end
 
-  def check_unseen( prowl = false )
+  def check_unseen( will_prowl = false )
     debug "Checking UNSEEN mail."
 
     unseen = @imap.search( ['UNSEEN'] )
@@ -269,10 +269,10 @@ class IMAProwl
     data_set.each do |data|
       begin
         attr = data.attr
-        unseen_set.push attr["UID"]
 
         if @notified.include?( attr["UID"] )
           debug "SKIP Already notified: UID=#{attr["UID"]}"
+          unseen_set.push attr["UID"]
           next
         end
 
@@ -346,21 +346,29 @@ class IMAProwl
         end
 
         # prowling
-        if prowl
+        if will_prowl
           info "Prowling... UID=#{attr["UID"]}"
           debug "Prowling: " + event + " " + body
-          presp = prowl( :apikey=> @@prowl_conf['APIKey'],
-                         :application => @application,
-                         :event => event,
-                         :description => body,
-                         :priority => @priority
-                         )
-          debug "Response: #{presp.code}"
+          begin
+            presp = prowl( :apikey=> @@prowl_conf['APIKey'],
+                           :application => @application,
+                           :event => event,
+                           :description => body,
+                           :priority => @priority
+                           )
+            unseen_set.push attr["UID"]  if presp && presp.code == "200"
+            debug "Response: #{presp.code}"
+          rescue
+            error "Error while HTTP/POST process."
+            debug $!
+          end
         else
-          debug "Not Prowled: UID=#{attr["UID"]}"
+          unseen_set.push attr["UID"]
+          debug "Not Prowled (Caching): UID=#{attr["UID"]}"
         end
       rescue
         error "Error while parsing mail: UID=#{attr["UID"]}. Skipped."
+        unseen_set.push attr["UID"]
         debug $!
       end
     end
