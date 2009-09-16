@@ -8,7 +8,7 @@ Homepage: http://github.com/takuo/IMAProwl
 
 Package: imaprowl
 Architecture: all
-Depends: ${misc:Depends}, ruby1.9, libopenssl-ruby1.9
+Depends: ${misc:Depends}, ruby1.9.1, libopenssl-ruby1.9.1
 Description: IMAP new mail notification utility for iPhone using Prowl Public API
  Prowl is a service and an App for iPhone's Push Notification service.(APNs)
  see http://prowl.weks.net/ for more about Prowl.

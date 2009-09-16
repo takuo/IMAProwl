@@ -18,7 +18,7 @@ override_dh_auto_clean:
 	-rm -f imaprowl
 
 override_dh_install:
-	install -m 0644	imapidle.rb `pwd`/debian/$(PACKAGE)/usr/lib/ruby/1.9.0/
+	install -m 0644	imapidle.rb `pwd`/debian/$(PACKAGE)/usr/lib/ruby/1.9.1/
 	install -m 0755 imaprowl `pwd`/debian/$(PACKAGE)/usr/bin/
 
 override_dh_auto_build:
