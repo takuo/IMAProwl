@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl notification for IMAP new mail
-# Version: 1.0.1
+# Version: 1.1.0
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
@@ -12,7 +12,7 @@ STDERR.sync = true
 
 $:.insert(0, File.dirname(__FILE__))
 
-IMAPROWL_VERSION = "1.0.1"
+IMAPROWL_VERSION = "1.1.0"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -254,6 +254,21 @@ class IMAProwl
     return http.request(request, query.join('&'))
   end
 
+  def get_text_part( struct, pos )
+    if struct.kind_of?( Net::IMAP::BodyTypeMultipart )
+      struct.parts.each_index do |i|
+        pos.push( i+1 )
+        part, pos = get_text_part( struct.parts[i], pos )
+        return part, pos if part && part.media_type == "TEXT"
+        pos.pop
+      end
+    end
+    if struct.media_type == "TEXT"
+      return struct, pos
+    end
+    return nil, pos
+  end
+
   def check_unseen( will_prowl = false )
     debug "Checking UNSEEN mail."
 
@@ -265,7 +280,7 @@ class IMAProwl
 
     unseen_set = Array.new
 
-    data_set = @imap.fetch( unseen, "(ENVELOPE BODYSTRUCTURE BODY.PEEK[1] UID)" )
+    data_set = @imap.fetch( unseen, "(ENVELOPE BODYSTRUCTURE UID)" )
     data_set.each do |data|
       begin
         attr = data.attr
@@ -305,20 +320,22 @@ class IMAProwl
 
         # body process
         begin
-          if attr['BODYSTRUCTURE'].kind_of?( Net::IMAP::BodyTypeMultipart )
-            part = attr['BODYSTRUCTURE'].parts[0]
+          part, pos = get_text_part( attr['BODYSTRUCTURE'], [] )
+          if part
+            section = pos.size > 0 ? pos.join('.') : "1"
+            tmp = @imap.uid_fetch( attr['UID'], "BODY[#{section}]" ).first
+            body = tmp.attr["BODY[#{section}]"]
           else
+            body = "[Body does not contain TEXT part]"
             part = attr['BODYSTRUCTURE']
           end
-        
+
           if part.media_type != "TEXT"
-            body = "[%s/%s]" % [ part.media_type, part.subtype ]
+            # do nothing
           elsif part.respond_to?('encoding') && part.encoding == "QUOTED-PRINTABLE"
-            body = attr["BODY[1]"].unpack("M*").first
+            body = body.unpack("M*").first
           elsif part.respond_to?('encoding') && part.encoding == "BASE64"
-            body = attr["BODY[1]"].unpack("m*").first
-          else # 7bit?
-            body = attr['BODY[1]']
+            body = body.unpack("m*").first
           end
         
           if part.param && part.param['CHARSET'] && part.param['CHARSET'] != "UTF-8"
@@ -335,7 +352,6 @@ class IMAProwl
               body = "[Body contains invalid charactor]"
             end
           end
-
           if body.split(//u).size > @body_length
             body = body.split(//u)[0..@body_length].join + "..."
           end
