@@ -6,6 +6,7 @@
   (post_escape): used for escaping string while HTTP/POST
   (prowl): use post_escape() instead of URI#escape
   (check_unseen): remove empty line and white-space of line-head before POST.
+  (check_unseen): triming should be done before count length.
 
 2009-09-16  Takuo Kitame <kitame@debian.org>
 
