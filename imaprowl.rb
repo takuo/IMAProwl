@@ -124,6 +124,12 @@ class IMAProwl
   end
 
   private
+  def post_escape( string )
+    string.gsub(/([^ a-zA-Z0-9_.-]+)/) do
+      '%' + $1.unpack('H2' * $1.bytesize).join('%').upcase
+    end.tr(' ', '+')
+  end
+
   def mime_decode( input, out_charset = 'utf-8' )
     while input.sub!(/(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)(?:(?:\r\n)?[\s\t])+(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)/, '\1\2')
     end
@@ -242,7 +248,7 @@ class IMAProwl
     request = Net::HTTP::Post.new( uri.request_uri )
     request.content_type = "application/x-www-form-urlencoded"
 
-    query = params.map do |key, val| "#{key}=#{URI::encode(val.to_s)}" end
+    query = params.map do |key, val| "#{key}=#{post_escape( val.to_s )}" end
 
     return http.request(request, query.join('&'))
   end
@@ -361,7 +367,7 @@ class IMAProwl
             presp = prowl( :apikey=> @@prowl_conf['APIKey'],
                            :application => @application,
                            :event => event,
-                           :description => body,
+                           :description => body.gsub(/^[\s\t]*/, '').gsub(/^$/, ''),
                            :priority => @priority
                            )
             unseen_set.push attr["UID"]  if presp && presp.code == "200"
