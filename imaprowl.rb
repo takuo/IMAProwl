@@ -17,6 +17,7 @@ if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
 end
+$0 = "IMAProwl/#{IMAPROWL_VERSION}"
 
 require 'optparse'
 require 'uri'
