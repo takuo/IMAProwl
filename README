@@ -1,4 +1,4 @@
-IMAProwl Version 1.0.0
+IMAProwl Version 1.1.0
 
  * Requirements
 
@@ -68,7 +68,7 @@ IMAProwl Version 1.0.0
     SubjectLength: <Int>
      [optional] subject length for prowl notification, defaul:30
     Interval: <Int> (in minutes)
-     [optional] IDLE Thread alive check interval, default: 20
+     [optional] re-IDLE interval. default: 20
     NOOPInterval: <Int> (in seconds)
      [optional] NOOP interval for no-IDLE mode, it should be really short about 30 or so. default: 30
     NoIDLE: <Boolean>
