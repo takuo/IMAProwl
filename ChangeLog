@@ -3,6 +3,9 @@
   * imaprowl.rb: don't use Iconv or NKF. use String#encode instead.
   (iconv_mime_decode): renamed to mime_decode()
   (check_unseen): fetch BODY should be BODY.PEEK
+  (post_escape): used for escaping string while HTTP/POST
+  (prowl): use post_escape() instead of URI#escape
+  (check_unseen): remove empty line and white-space of line-head before POST.
 
 2009-09-16  Takuo Kitame <kitame@debian.org>
 
