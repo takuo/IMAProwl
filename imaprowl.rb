@@ -350,6 +350,8 @@ class IMAProwl
               body = "[Body contains invalid charactor]"
             end
           end
+
+          body.gsub!(/^[\s\t]*/, '').gsub(/^$/, '')
           if body.split(//u).size > @body_length
             body = body.split(//u)[0..@body_length].join + "..."
           end
@@ -367,7 +369,7 @@ class IMAProwl
             presp = prowl( :apikey=> @@prowl_conf['APIKey'],
                            :application => @application,
                            :event => event,
-                           :description => body.gsub(/^[\s\t]*/, '').gsub(/^$/, ''),
+                           :description => body,
                            :priority => @priority
                            )
             unseen_set.push attr["UID"]  if presp && presp.code == "200"
