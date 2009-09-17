@@ -25,13 +25,6 @@ require 'net/imap'
 require 'yaml'
 require 'logger'
 require 'imapidle' unless Net::IMAP.respond_to?("idle")
-begin
-  require 'iconv'
-  $iconv = true
-rescue LoadError
-  require 'nkf'
-  $iconv = false
-end
 
 class IMAProwl
 
@@ -131,8 +124,7 @@ class IMAProwl
   end
 
   private
-  def iconv_mime_decode( input, out_charset = 'utf-8' )
-    return NKF.nkf( '-mw', input ) unless $iconv
+  def mime_decode( input, out_charset = 'utf-8' )
     while input.sub!(/(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)(?:(?:\r\n)?[\s\t])+(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)/, '\1\2')
     end
     begin
@@ -142,9 +134,10 @@ class IMAProwl
         word = $3
         debug "Decode MIME hedaer: Charset: #{charset}, Encode: #{enc}, Word: #{word}"
         word = word.unpack( { "B"=>"m*", "Q"=>"M*" }[enc] ).first
-        Iconv.conv( out_charset, charset, word )
+        # Iconv.conv( out_charset + "//IGNORE", charset, word )
+        word.encode( out_charset, charset, :invalid=>:replace, :replace=>"." )
       }
-      return ret ? iconv_mime_decode( input ) : input
+      return ret ? mime_decode( input ) : input
     rescue
       # "Error while convert MIME string."
       error "Error while converting MIME header: #{input}"
@@ -298,7 +291,7 @@ class IMAProwl
           from_name = envelope.from.first.name
           from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
 
-          from = from_name ? iconv_mime_decode( from_name ) : from_addr
+          from = from_name ? mime_decode( from_name ) : from_addr
         rescue
           error "Error: Invalid From."
           debug $!.to_s
@@ -306,7 +299,7 @@ class IMAProwl
         end
 
         begin
-          subject = envelope.subject ? iconv_mime_decode( envelope.subject ) : "Untitled"
+          subject = envelope.subject ? mime_decode( envelope.subject ) : "Untitled"
           if subject.split(//u).size > @subject_length
             subject = subject.split(//u)[0..@subject_length].join + "..."
           end
@@ -323,11 +316,13 @@ class IMAProwl
           part, pos = get_text_part( attr['BODYSTRUCTURE'], [] )
           if part
             section = pos.size > 0 ? pos.join('.') : "1"
-            tmp = @imap.uid_fetch( attr['UID'], "BODY[#{section}]" ).first
+            debug "Detected text part: [#{section}]"
+            tmp = @imap.uid_fetch( attr['UID'], "BODY.PEEK[#{section}]" ).first
             body = tmp.attr["BODY[#{section}]"]
           else
             body = "[Body does not contain TEXT part]"
             part = attr['BODYSTRUCTURE']
+            debug "No text part found."
           end
 
           if part.media_type != "TEXT"
@@ -341,11 +336,8 @@ class IMAProwl
           if part.param && part.param['CHARSET'] && part.param['CHARSET'] != "UTF-8"
             debug "Convert body charset from #{part.param['CHARSET']}"
             begin
-              if $iconv
-                body = Iconv.conv( 'UTF-8', part.param['CHARSET'], body )
-              else
-                body = NKF.nkf( '-w', body )
-              end
+              # body = Iconv.conv( 'UTF-8//IGNORE', part.param['CHARSET'], body )
+              body.encode!( "UTF-8", part.param['CHARSET'], :invalid=>:replace, :replace=>"." )
             rescue
               error "Error while converting body from #{part.param['CHARSET']}"
               debug $!.to_s
