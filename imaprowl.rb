@@ -351,7 +351,7 @@ class IMAProwl
             end
           end
 
-          body.gsub!(/^[\s\t]*/, '').gsub(/^$/, '')
+          body = body.gsub(/^[\s\t]*/, '').gsub(/^$/, '')
           if body.split(//u).size > @body_length
             body = body.split(//u)[0..@body_length].join + "..."
           end
