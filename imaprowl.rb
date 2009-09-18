@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl notification for IMAP new mail
-# Version: 1.1.0
+# Version: 1.1.1
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
@@ -12,7 +12,7 @@ STDERR.sync = true
 
 $:.insert(0, File.dirname(__FILE__))
 
-IMAPROWL_VERSION = "1.1.0"
+IMAPROWL_VERSION = "1.1.1"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit

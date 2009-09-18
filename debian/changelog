@@ -1,8 +1,8 @@
-imaprowl (1.1.0-1) unstable; urgency=low
+imaprowl (1.1.1-1) unstable; urgency=low
 
   * New upstream release.
 
- -- Takuo KITAME <kitame@debian.org>  Thu, 17 Sep 2009 17:51:16 +0900
+ -- Takuo KITAME <kitame@debian.org>  Fri, 18 Sep 2009 18:29:58 +0900
 
 imaprowl (1.0.1-1) unstable; urgency=low
 
