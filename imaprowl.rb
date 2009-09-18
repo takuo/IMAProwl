@@ -142,7 +142,7 @@ class IMAProwl
         debug "Decode MIME hedaer: Charset: #{charset}, Encode: #{enc}, Word: #{word}"
         word = word.unpack( { "B"=>"m*", "Q"=>"M*" }[enc] ).first
         # Iconv.conv( out_charset + "//IGNORE", charset, word )
-        word.encode( out_charset, charset, :invalid=>:replace, :replace=>"." )
+        word.encode( out_charset, charset, :undef=>:replace, :invalid=>:replace, :replace=>"_" )
       }
       return ret ? mime_decode( input ) : input
     rescue
@@ -344,7 +344,7 @@ class IMAProwl
             debug "Convert body charset from #{part.param['CHARSET']}"
             begin
               # body = Iconv.conv( 'UTF-8//IGNORE', part.param['CHARSET'], body )
-              body.encode!( "UTF-8", part.param['CHARSET'], :invalid=>:replace, :replace=>"." )
+              body.encode!( "UTF-8", part.param['CHARSET'], :undef=>:replace, :invalid=>:replace, :replace=>"_" )
             rescue
               error "Error while converting body from #{part.param['CHARSET']}"
               debug $!.to_s
