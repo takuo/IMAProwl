@@ -1,3 +1,7 @@
+2009-09-18  Takuo Kitame <kitame@debian.org>
+
+  * imaprowl.rb: String#encode use option :undef=>:replace and replacement charactor should be default.
+
 2009-09-17  Takuo Kitame <kitame@debian.org>
 
   * imaprowl.rb: don't use Iconv or NKF. use String#encode instead.
