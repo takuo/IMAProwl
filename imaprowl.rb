@@ -340,7 +340,7 @@ class IMAProwl
             body = body.unpack("m*").first
           end
         
-          if part.param && part.param['CHARSET'] && part.param['CHARSET'] != "UTF-8"
+          if part.param && part.param['CHARSET'] 
             debug "Convert body charset from #{part.param['CHARSET']}"
             begin
               # body = Iconv.conv( 'UTF-8//IGNORE', part.param['CHARSET'], body )
@@ -350,6 +350,9 @@ class IMAProwl
               debug $!.to_s
               body = "[Body contains invalid charactor]"
             end
+          else
+            # force convert to UTF-8
+            body.encode!("UTF-8", nil, :undef=>:replace, :invalid=>:replace)
           end
 
           body = body.gsub(/^[\s\t]*/, '').gsub(/^$/, '')
