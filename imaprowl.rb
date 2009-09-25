@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl notification for IMAP new mail
-# Version: 1.1.1
+# Version: 1.1.2
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
@@ -12,7 +12,7 @@ STDERR.sync = true
 
 $:.insert(0, File.dirname(__FILE__))
 
-IMAPROWL_VERSION = "1.1.1"
+IMAPROWL_VERSION = "1.1.2"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -340,19 +340,18 @@ class IMAProwl
             body = body.unpack("m*").first
           end
         
+          charset = nil
           if part.param && part.param['CHARSET'] 
-            debug "Convert body charset from #{part.param['CHARSET']}"
-            begin
-              # body = Iconv.conv( 'UTF-8//IGNORE', part.param['CHARSET'], body )
-              body.encode!( "UTF-8", part.param['CHARSET'], :undef=>:replace, :invalid=>:replace )
-            rescue
-              error "Error while converting body from #{part.param['CHARSET']}"
-              debug $!.to_s
-              body = "[Body contains invalid charactor]"
-            end
-          else
-            # force convert to UTF-8
-            body.encode!("UTF-8", nil, :undef=>:replace, :invalid=>:replace)
+            charset = part.param['CHARSET']
+          end
+
+          debug "Convert body charset from #{charset}"
+          begin
+            body.encode!( "UTF-8", charset, :undef=>:replace, :invalid=>:replace )
+          rescue
+            error "Error while converting body from #{charset}"
+            debug $!.to_s
+            body = "[Body contains invalid charactor]"
           end
 
           body = body.gsub(/^[\s\t]*/, '').gsub(/^$/, '')
