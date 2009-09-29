@@ -1,6 +1,7 @@
 2009-09-29  Takuo Kitame <kitame@debian.org>
 
-  * config: added Format, Interval is now renamed to Timeout
+  * config: added Format. Interval is now renamed to Timeout
+    print/log warning 'Interval is deprecated.'
   * imaprowl.rb (check_unseen): format string can be used for prowl event text.
     simplified string count method.
     (initialize): default value of SubjectLength is 20
