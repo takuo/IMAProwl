@@ -314,7 +314,7 @@ class IMAProwl
         begin
           subject = envelope.subject ? mime_decode( envelope.subject ) : "Untitled"
           if subject.size > @subject_length
-            subject = subject[0..@subject_length].join + "..."
+            subject = subject[0..@subject_length] + "..."
           end
         rescue
           error "Error: Invalid Subject."
@@ -362,7 +362,7 @@ class IMAProwl
 
           body = body.gsub(/^[\s\t]*/, '').gsub(/^$/, '')
           if body.size > @body_length
-            body = body[0..@body_length].join + "..."
+            body = body[0..@body_length] + "..."
           end
         rescue
           error "Error: Could not parse body text"
