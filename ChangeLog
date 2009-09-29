@@ -3,6 +3,7 @@
   * config: added Format, Interval is now renamed to Timeout
   * imaprowl.rb (check_unseen): format string can be used for prowl event text.
     simplified string count method.
+    (initialize): default value of SubjectLength is 20
 	
 2009-09-25  Takuo Kitame <kitame@debian.org>
 
