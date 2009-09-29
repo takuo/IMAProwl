@@ -322,7 +322,14 @@ class IMAProwl
           subject = "[Invalid Subject]"
         end
 
-        event = @format % { :subject => subject, :from => from }
+        begin
+          event = @format % { :subject => subject, :from => from }
+        rescue KeyError
+          error "Invalid format string: #{@format}"
+          @format = "%{subject} from: %{from}"
+          info "Failing back to default format: #{@format}"
+          retry
+        end
 
         # body process
         begin
