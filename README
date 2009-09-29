@@ -68,7 +68,7 @@ IMAProwl Version 1.2
     SubjectLength: <Int>
      [optional] subject length for prowl notification, default: 20
     Format: <string>
-     [optional] prowl text format, you can use "%{subject}" and "%{from}" keyword in the format string.  default: "%{subject} from: %{from}"
+     [optional] prowl text format, you can use "%{subject}", "%{from}", "%{name}" and "%{addr}" keyword in the format string.  default: "%{subject} (%{from})"
     Timeout: <Int> (in minutes)
      [optional] Timeout for No-Response, default: 20
     NOOPInterval: <Int> (in seconds)

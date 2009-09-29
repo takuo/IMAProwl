@@ -21,7 +21,7 @@ Accounts:
   BodyLength: 100
   SubjectLength: 20
   Priority: 0
-  Format: "%{subject} from: %{from}"
+  Format: "%{subject} (%{name} <%{addr}>)"
   Timeout: 7    # Timeout for NoResponse during IDLE. Recommend you set 6-7 for GMail. (in minutes)
  -
   Application: SoftBank
