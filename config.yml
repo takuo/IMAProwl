@@ -1,9 +1,9 @@
 ##
-## example configuration (version >= 0.9)
+## example configuration (version >= 1.2)
 ##
 ## 
 ## if undefine LogDir, Debug mode is forcefully enabled.
-LogDir: logs/
+LogDir: /home/you/logs/
 Debug: false
 Daemon: true
 
@@ -21,7 +21,8 @@ Accounts:
   BodyLength: 100
   SubjectLength: 20
   Priority: 0
-  Interval: 7    # Interval of checking thread availability. Recommend you set 6-7 for GMail. (in minutes)
+  Format: "%{subject} from: %{from}"
+  Timeout: 7    # Timeout for NoResponse during IDLE. Recommend you set 6-7 for GMail. (in minutes)
  -
   Application: SoftBank
   User: yourname
@@ -30,6 +31,7 @@ Accounts:
   BodyLength: 256
   SubjectLength: 20
   Priority: 0
+  Format: "Subject:%{subject} From:%{from}"
   NOOPInterval: 20  # NOOP(check) interval with no-IDLE mode. (in seconds)
   NoIDLE: true      # unnecessary, because it should be auto-detected.
   Enable: false     # diable this account. Set true to enable this account.
