@@ -62,7 +62,7 @@ class IMAProwl
     @notified = []
     @enable = conf.has_key?('Enable') ? conf['Enable'] : true
     @no_idle = conf.has_key?('NoIDLE') ? conf['NoIDLE'] : false
-	@format = conf.has_key?('Format') ? conf['Format'] : "%{subject} from: %{from}"
+	@format = conf.has_key?('Format') ? conf['Format'] : "%{subject} (%{from})"
   end
 
   # start() should run only once
