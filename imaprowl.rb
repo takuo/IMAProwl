@@ -317,7 +317,7 @@ class IMAProwl
           subject = "[Invalid Subject]"
         end
 
-        event = @format % { :subject => subject. :from => from }
+        event = @format % { :subject => subject, :from => from }
 
         # body process
         begin
