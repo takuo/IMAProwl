@@ -1,3 +1,9 @@
+2009-09-29  Takuo Kitame <kitame@debian.org>
+
+  * config: added Format, Interval is now renamed to Timeout
+  * imaprowl.rb (check_unseen): format string can be used for prowl event text.
+    simplified string count method.
+	
 2009-09-25  Takuo Kitame <kitame@debian.org>
 
   * imaprowl.rb (check_unseen): always convert body to UTF-8
