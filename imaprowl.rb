@@ -1,18 +1,17 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl notification for IMAP new mail
-# Version: 1.1.2
+# Version: 1.2.0
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
 # You can redistribute it and/or modify it under the same term as Ruby.
 #
-STDOUT.sync = true
-STDERR.sync = true
+STDOUT.sync = STDERR.sync = true
 
 $:.insert(0, File.dirname(__FILE__))
 
-IMAPROWL_VERSION = "1.1.2"
+IMAPROWL_VERSION = "1.2.0"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -47,7 +46,8 @@ class IMAProwl
     @host = conf['Host']
     @port = conf['Port'] ? conf['Port'] : 993
     @mailbox = conf['MailBox'] ? conf['MailBox'] : "INBOX"
-    @interval = conf['Interval'] ? conf['Interval'] : 20
+    # backward compat
+    @timeout = conf['Timeout'] ? conf['Timeout'] : ( conf['Interval'] ? conf['Interval'] : 20 )
     @noop = conf['NOOPInterval'] ? conf['NOOPInterval'] : 30
     @subject_length = conf['SubjectLength'] ? conf['SubjectLength'] - 1 : 30
     @body_length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
@@ -57,6 +57,7 @@ class IMAProwl
     @notified = []
     @enable = conf.has_key?('Enable') ? conf['Enable'] : true
     @no_idle = conf.has_key?('NoIDLE') ? conf['NoIDLE'] : false
+	@format = conf.has_key?('Format') ? conf['Format'] : "%{subject} from: %{from}"
   end
 
   # start() should run only once
@@ -110,7 +111,7 @@ class IMAProwl
         error "IDLE thread is dead."
         restart
       end
-      if @interval > 0 && Time.now - @idle_time > 60 * @interval
+      if @timeout > 0 && Time.now - @idle_time > 60 * @timeout
         info "encounter interval."
         stop
       end
@@ -307,8 +308,8 @@ class IMAProwl
 
         begin
           subject = envelope.subject ? mime_decode( envelope.subject ) : "Untitled"
-          if subject.split(//u).size > @subject_length
-            subject = subject.split(//u)[0..@subject_length].join + "..."
+          if subject.size > @subject_length
+            subject = subject[0..@subject_length].join + "..."
           end
         rescue
           error "Error: Invalid Subject."
@@ -316,7 +317,7 @@ class IMAProwl
           subject = "[Invalid Subject]"
         end
 
-        event = "#{subject} from: #{from}"
+        event = @format % { :subject => subject. :from => from }
 
         # body process
         begin
@@ -355,8 +356,8 @@ class IMAProwl
           end
 
           body = body.gsub(/^[\s\t]*/, '').gsub(/^$/, '')
-          if body.split(//u).size > @body_length
-            body = body.split(//u)[0..@body_length].join + "..."
+          if body.size > @body_length
+            body = body[0..@body_length].join + "..."
           end
         rescue
           error "Error: Could not parse body text"
