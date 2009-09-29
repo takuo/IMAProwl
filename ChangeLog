@@ -5,6 +5,7 @@
   * imaprowl.rb (check_unseen): format string can be used for prowl event text.
     simplified string count method.
     (initialize): default value of SubjectLength is 20
+  * tagged as 1.2
 	
 2009-09-25  Takuo Kitame <kitame@debian.org>
 
