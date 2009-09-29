@@ -1,4 +1,4 @@
-IMAProwl Version 1.1
+IMAProwl Version 1.2
 
  * Requirements
 
@@ -64,11 +64,13 @@ IMAProwl Version 1.1
     MailBox: <String>
      [optional] mailbox to check UNSEEN, default: INBOX
     BodyLength: <Int>
-     [optional] body length for prowl notification, defaul:100, Max: 1000
+     [optional] body length for prowl notification, default:100, Max: 1000
     SubjectLength: <Int>
-     [optional] subject length for prowl notification, defaul:30
-    Interval: <Int> (in minutes)
-     [optional] re-IDLE interval. default: 20
+     [optional] subject length for prowl notification, default:30
+    Format: <string>
+     [optional] prowl text format, you can use "%{subject}" and "%{from}" keyword in the format string.  default: "%{subject} from: %{from}"
+    Timeout: <Int> (in minutes)
+     [optional] Timeout for No-Response, default: 20
     NOOPInterval: <Int> (in seconds)
      [optional] NOOP interval for no-IDLE mode, it should be really short about 30 or so. default: 30
     NoIDLE: <Boolean>
