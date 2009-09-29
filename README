@@ -64,9 +64,9 @@ IMAProwl Version 1.2
     MailBox: <String>
      [optional] mailbox to check UNSEEN, default: INBOX
     BodyLength: <Int>
-     [optional] body length for prowl notification, default:100, Max: 1000
+     [optional] body length for prowl notification, default: 100, Max: 1000
     SubjectLength: <Int>
-     [optional] subject length for prowl notification, default:30
+     [optional] subject length for prowl notification, default: 20
     Format: <string>
      [optional] prowl text format, you can use "%{subject}" and "%{from}" keyword in the format string.  default: "%{subject} from: %{from}"
     Timeout: <Int> (in minutes)

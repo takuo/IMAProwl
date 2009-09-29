@@ -49,7 +49,7 @@ class IMAProwl
     # backward compat
     @timeout = conf['Timeout'] ? conf['Timeout'] : ( conf['Interval'] ? conf['Interval'] : 20 )
     @noop = conf['NOOPInterval'] ? conf['NOOPInterval'] : 30
-    @subject_length = conf['SubjectLength'] ? conf['SubjectLength'] - 1 : 30
+    @subject_length = conf['SubjectLength'] ? conf['SubjectLength'] - 1 : 19
     @body_length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
     @body_length = 1 if @body_length < 0
     @subject_length = 1 if @subject_length < 0
