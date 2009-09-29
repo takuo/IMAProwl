@@ -300,11 +300,11 @@ class IMAProwl
         # header process
         envelope = attr["ENVELOPE"]
 
+        addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
+        name = envelope.from.first.name
         begin
-          from_name = envelope.from.first.name
-          from_addr = "#{envelope.from.first.mailbox}@#{envelope.from.first.host}"
-
-          from = from_name ? mime_decode( from_name ) : from_addr
+          name = name ? mime_decode( name ) : ""
+          from = name != "" ? name : addr
         rescue
           error "Error: Invalid From."
           debug $!.to_s
@@ -323,7 +323,8 @@ class IMAProwl
         end
 
         begin
-          event = @format % { :subject => subject, :from => from }
+          event = @format % { :subject => subject, :from => from,
+            :name=>name, :addr=>addr }
         rescue KeyError
           error "Invalid format string: #{@format}"
           @format = "%{subject} from: %{from}"
