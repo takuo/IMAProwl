@@ -48,6 +48,11 @@ class IMAProwl
     @mailbox = conf['MailBox'] ? conf['MailBox'] : "INBOX"
     # backward compat
     @timeout = conf['Timeout'] ? conf['Timeout'] : ( conf['Interval'] ? conf['Interval'] : 20 )
+    if conf['Interval']
+      warn = "Warning: 'Interval' is deprecated. You should use 'Timeout' instead."
+      STDERR.print "#{warn}\n"
+      info warn
+    end
     @noop = conf['NOOPInterval'] ? conf['NOOPInterval'] : 30
     @subject_length = conf['SubjectLength'] ? conf['SubjectLength'] - 1 : 19
     @body_length = conf['BodyLength'] ? conf['BodyLength'] - 1 : 99
