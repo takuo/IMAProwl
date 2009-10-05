@@ -1,3 +1,11 @@
+2009-10-05  Takuo Kitame <kitame@debian.org>
+
+	* imaprowl.rb: bump version 1.2.1
+	more verbose logging for DEBUG
+	(warn): new logger function for Logger::WARN
+	(check_unseen): falling back to default format if @format not usable.
+	(idler): handle some IMAP responses.
+	
 2009-09-29  Takuo Kitame <kitame@debian.org>
 
   * config: added Format. Interval is now renamed to Timeout
