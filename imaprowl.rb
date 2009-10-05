@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
 #
 # IMAProwl - Prowl notification for IMAP new mail
-# Version: 1.2.0
+# Version: 1.2
 #
 # Copyright (c) 2009 Takuo Kitame.
 #
@@ -11,7 +11,7 @@ STDOUT.sync = STDERR.sync = true
 
 $:.insert(0, File.dirname(__FILE__))
 
-IMAPROWL_VERSION = "1.2.0"
+IMAPROWL_VERSION = "1.2.1"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -51,7 +51,7 @@ class IMAProwl
     if conf['Interval']
       warn = "Warning: 'Interval' is deprecated. You should use 'Timeout' instead."
       STDERR.print "#{warn}\n"
-      info warn
+      warn warn
     end
     @noop = conf['NOOPInterval'] ? conf['NOOPInterval'] : 30
     @subject_length = conf['SubjectLength'] ? conf['SubjectLength'] - 1 : 19
@@ -98,6 +98,7 @@ class IMAProwl
 
   def stop
     unless @no_idle
+      @idle_time = nil
       @imap.idle_done
       debug "DONE IDLE."
     end
@@ -116,8 +117,8 @@ class IMAProwl
         error "IDLE thread is dead."
         restart
       end
-      if @timeout > 0 && Time.now - @idle_time > 60 * @timeout
-        info "encounter interval."
+      if @timeout > 0 && @idle_time && Time.now - @idle_time > 60 * @timeout
+        info "Timeout exceed. "
         stop
       end
     rescue
@@ -201,11 +202,15 @@ class IMAProwl
   end
 
   def debug( str )
-    _log( Logger::DEBUG, str )
+    _log( Logger::DEBUG, "#{Thread.current}:#{str}" )
   end
 
   def error( str )
-    _log( Logger::ERROR, str )
+    _log( Logger::ERROR, "#{Thread.current}:#{str}" )
+  end
+
+  def warn( str )
+    _log( Logger::WARN, str)
   end
 
   def info( str )
@@ -328,8 +333,11 @@ class IMAProwl
         rescue KeyError
           error "Invalid format string: #{@format}"
           @format = "%{subject} from: %{from}"
-          info "Failing back to default format: #{@format}"
+          warn "Failing back to default format: #{@format}"
           retry
+        rescue ArgumentError
+          warn "This ruby does not support format string with Hash argument. falling back to default format."
+          event = "#{subject} (#{from})"
         end
 
         # body process
@@ -440,11 +448,23 @@ class IMAProwl
           debug "Entering IDLE."
           @idle_time = Time.now
           @imap.idle do |resp|
-            if resp.kind_of?( Net::IMAP::UntaggedResponse ) and
-               resp.name == "EXISTS"
-              event = true
-              info "Received EXISTS."
-              @imap.idle_done
+            if resp.kind_of?( Net::IMAP::UntaggedResponse )
+              case resp.name
+              when "EXISTS"
+                event = true
+                info "Received EXISTS: #{resp.data.text}"
+                @idle_time = nil
+                @imap.idle_done
+                debug "DONE IDLE."
+              when "OK"
+                info "Received OK: #{resp.data.text}"
+              else
+                debug "FIXME: Unhandled response: #{resp.name}: #{resp}"
+              end
+            elsif resp.kind_of?( Net::IMAP::ContinuationRequest )
+              debug "Received idling"
+            else
+              debug "FIXME: Unhandled response: #{resp.name}, #{resp}"
             end
           end
           check_unseen( true ) if event
