@@ -367,7 +367,9 @@ class IMAProwl
             charset = part.param['CHARSET']
           end
 
-          debug "Convert body charset from #{charset}"
+          body.force_encoding( "ISO-2022-JP" ) if body.encoding == Encoding::US_ASCII
+
+          debug "Convert body charset from #{charset ? charset : body.encoding.to_s}"
           begin
             body.encode!( "UTF-8", charset, :undef=>:replace, :invalid=>:replace )
           rescue
@@ -405,6 +407,7 @@ class IMAProwl
           end
         else
           unseen_set.push attr["UID"]
+          debug "Caching: " + event + " " + body
           debug "Not Prowled (Caching): UID=#{attr["UID"]}"
         end
       rescue
