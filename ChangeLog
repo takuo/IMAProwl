@@ -1,3 +1,7 @@
+2009-10-06  Takuo Kitame <kitame@debian.org>
+
+	* imaprowl.rb (check_unseen): try body.encode() with src encoding as 'ISO-2022-JP' if body.encoding is US-ASCII. (don't warry ISO-2022-JP is compatible with US-ASCII)
+	
 2009-10-05  Takuo Kitame <kitame@debian.org>
 
 	* imaprowl.rb: bump version 1.2.1
