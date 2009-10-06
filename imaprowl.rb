@@ -224,7 +224,7 @@ class IMAProwl
       error "Failed to login: user: #{@user}@#{@host}."
       return false
     end
-    @imap.select( @mailbox )
+    @imap.select( Net::IMAP.encode_utf7( @mailbox ) )
     @logged_in = true
     return true
   end
