@@ -1,7 +1,11 @@
+2009-10-07  Takuo Kitame <kitame@debian.org>
+
+	* imaprowl.rb (login): MailBox name should be UTF-7
+
 2009-10-06  Takuo Kitame <kitame@debian.org>
 
 	* imaprowl.rb (check_unseen): try body.encode() with src encoding as 'ISO-2022-JP' if body.encoding is US-ASCII. (don't warry ISO-2022-JP is compatible with US-ASCII)
-	
+
 2009-10-05  Takuo Kitame <kitame@debian.org>
 
 	* imaprowl.rb: bump version 1.2.1
@@ -9,7 +13,7 @@
 	(warn): new logger function for Logger::WARN
 	(check_unseen): falling back to default format if @format not usable.
 	(idler): handle some IMAP responses.
-	
+
 2009-09-29  Takuo Kitame <kitame@debian.org>
 
   * config: added Format. Interval is now renamed to Timeout
@@ -18,7 +22,7 @@
     simplified string count method.
     (initialize): default value of SubjectLength is 20
   * tagged as 1.2
-	
+
 2009-09-25  Takuo Kitame <kitame@debian.org>
 
   * imaprowl.rb (check_unseen): always convert body to UTF-8
