@@ -455,12 +455,13 @@ class IMAProwl
               case resp.name
               when "EXISTS"
                 event = true
-                info "Received EXISTS: #{resp.data.text}"
+                info "Received EXISTS."
                 @idle_time = nil
                 @imap.idle_done
                 debug "DONE IDLE."
               when "OK"
-                info "Received OK: #{resp.data.text}"
+                info "Received OK" + 
+                  resp.data.respond_to('text') ? resp.data.text : ""
               else
                 debug "FIXME: Unhandled response: #{resp.name}: #{resp}"
               end
