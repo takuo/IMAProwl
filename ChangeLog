@@ -1,6 +1,7 @@
 2009-10-07  Takuo Kitame <kitame@debian.org>
 
 	* imaprowl.rb (login): MailBox name should be UTF-7
+	* tagged as 1.2.1
 
 2009-10-06  Takuo Kitame <kitame@debian.org>
 
