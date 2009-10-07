@@ -1,6 +1,6 @@
+## -*- encoding: utf-8 -*-
 ##
 ## example configuration (version >= 1.2)
-##
 ## 
 ## if undefine LogDir, Debug mode is forcefully enabled.
 LogDir: /home/you/logs/
