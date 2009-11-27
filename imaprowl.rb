@@ -9,9 +9,9 @@
 #
 STDOUT.sync = STDERR.sync = true
 
-$:.insert(0, File.dirname(__FILE__))
+$:.unshift File.dirname(__FILE__)
 
-IMAPROWL_VERSION = "1.2.1"
+IMAPROWL_VERSION = "1.2.1.1"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -62,16 +62,16 @@ class IMAProwl
     @notified = []
     @enable = conf.has_key?('Enable') ? conf['Enable'] : true
     @no_idle = conf.has_key?('NoIDLE') ? conf['NoIDLE'] : false
-	@format = conf.has_key?('Format') ? conf['Format'] : "%{subject} (%{from})"
+    @format = conf.has_key?('Format') ? conf['Format'] : "%{subject} (%{from})"
   end
 
   # start() should run only once
   def start
     info "Starting."
     connect()
-    unless @imap.capability.include?( 'IDLE' )
-      error "Error: #{@host} does not support IDLE."
-      error "Falling back to no IDLE support mode."
+    if !@no_idle and !@imap.capability.include?( 'IDLE' )
+      warn "Error: #{@host} does not support IDLE."
+      warn "Falling back to no IDLE support mode."
       @no_idle = true
     end
     login()
@@ -139,10 +139,10 @@ class IMAProwl
   end
 
   def mime_decode( input, out_charset = 'utf-8' )
-    while input.sub!(/(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)(?:(?:\r\n)?[\s\t])+(=\?[A-Za-z0-9-]+\?[BQbq]\?[^\?]+\?=)/, '\1\2')
+    while input.sub!(/(=\?[A-Za-z0-9_-]+\?[BQbq]\?[^\?]+\?=)(?:(?:\r\n)?[\s\t])+(=\?[A-Za-z0-9_-]+\?[BQbq]\?[^\?]+\?=)/, '\1\2')
     end
     begin
-      ret = input.sub!( /=\?([A-Za-z0-9-]+)\?([BQbq])\?([^\?]+)\?=/ ) {
+      ret = input.sub!( /=\?([A-Za-z0-9_-]+)\?([BQbq])\?([^\?]+)\?=/ ) {
         charset = $1
         enc = $2.upcase
         word = $3
@@ -286,8 +286,10 @@ class IMAProwl
     unseen = @imap.search( ['UNSEEN'] )
     if unseen.size == 0
       @notified = []
+      debug("No UNSEEN mail.")
       return
     end
+    debug("#{unseen.size} UNSEEN mails.")
 
     unseen_set = Array.new
 
@@ -428,6 +430,7 @@ class IMAProwl
           event = false
           @imap.synchronize do
             @imap.noop
+            debug("Execute NOOP")
             event = true if @imap.responses["EXISTS"][-1]
             @imap.responses.delete("EXISTS")
           end
