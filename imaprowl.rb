@@ -11,7 +11,7 @@ STDOUT.sync = STDERR.sync = true
 
 $:.unshift File.dirname(__FILE__)
 
-IMAPROWL_VERSION = "1.2.1.1"
+IMAPROWL_VERSION = "1.2.1.2"
 if RUBY_VERSION < "1.9.0"
   STDERR.puts "IMAProwl #{IMAPROWL_VERSION} requires Ruby >= 1.9.0"
   exit
@@ -67,20 +67,27 @@ class IMAProwl
 
   # start() should run only once
   def start
-    info "Starting."
-    connect()
-    if !@no_idle and !@imap.capability.include?( 'IDLE' )
-      warn "Error: #{@host} does not support IDLE."
-      warn "Falling back to no IDLE support mode."
-      @no_idle = true
+    begin
+      info "Starting."
+      connect()
+      if !@no_idle and !@imap.capability.include?( 'IDLE' )
+        warn "Error: #{@host} does not support IDLE."
+        warn "Falling back to no IDLE support mode."
+        @no_idle = true
+      end
+      login()
+      check_unseen( false )
+      if @no_idle
+        checker()
+      else
+        idler()
+      end
+    rescue
+      error "Error while starting thread. disabling #{@application}"
+      debug $!.to_s
+      return false
     end
-    login()
-    check_unseen( false )
-    if @no_idle
-      checker()
-    else
-      idler()
-    end
+    true
   end
 
   def restart
@@ -551,8 +558,9 @@ application = Array.new
 config['Accounts'].each do |account|
   app = IMAProwl.new( config, account )
   next unless app.enable
-  app.start()
-  application.push( app )
+  if app.start()
+    application.push( app )
+  end
 end
 
 ## Signal trap
