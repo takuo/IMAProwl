@@ -153,7 +153,7 @@ class IMAProwl
         charset = $1
         enc = $2.upcase
         word = $3
-        debug "Decode MIME hedaer: Charset: #{charset}, Encode: #{enc}, Word: #{word}"
+        debug "Decode MIME header: Charset: #{charset}, Encode: #{enc}, Word: #{word}"
         word = word.unpack( { "B"=>"m*", "Q"=>"M*" }[enc] ).first
         # Iconv.conv( out_charset + "//IGNORE", charset, word )
         word.encode( out_charset, charset, :undef=>:replace, :invalid=>:replace )
